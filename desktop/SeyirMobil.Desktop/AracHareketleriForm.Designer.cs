@@ -13,6 +13,7 @@ partial class AracHareketleriForm
         base.Dispose(disposing);
     }
 
+    private System.Windows.Forms.TableLayoutPanel tableRoot;
     private System.Windows.Forms.FlowLayoutPanel flowUst;
 
     private System.Windows.Forms.FlowLayoutPanel groupPlaka;
@@ -22,6 +23,7 @@ partial class AracHareketleriForm
     private System.Windows.Forms.FlowLayoutPanel groupTarih;
     private System.Windows.Forms.Label lblTarih;
     private System.Windows.Forms.DateTimePicker dtpTarih;
+    private System.Windows.Forms.Button btnTarihOnayla;
 
     private System.Windows.Forms.FlowLayoutPanel groupHiz;
     private System.Windows.Forms.Label lblHiz;
@@ -36,11 +38,25 @@ partial class AracHareketleriForm
     private System.Windows.Forms.Button btnSil;
     private System.Windows.Forms.Button btnYenile;
     private System.Windows.Forms.Button btnHareketRaporu;
+
+    private System.Windows.Forms.FlowLayoutPanel flowFiltre;
+    private System.Windows.Forms.Label lblFiltreBaslik;
+    private System.Windows.Forms.ComboBox cmbFiltrePlaka;
+    private System.Windows.Forms.CheckBox chkFiltreTarih;
+    private System.Windows.Forms.DateTimePicker dtpFiltreTarih;
+    private System.Windows.Forms.Label lblFiltreHiz;
+    private System.Windows.Forms.TextBox txtFiltreHiz;
+    private System.Windows.Forms.Label lblFiltreKm;
+    private System.Windows.Forms.TextBox txtFiltreKm;
+    private System.Windows.Forms.Button btnFiltreUygula;
+    private System.Windows.Forms.Button btnFiltreTemizle;
+
     private System.Windows.Forms.DataGridView dgvHareketler;
     private System.Windows.Forms.Label lblStatus;
 
     private void InitializeComponent()
     {
+        this.tableRoot = new System.Windows.Forms.TableLayoutPanel();
         this.flowUst = new System.Windows.Forms.FlowLayoutPanel();
         this.groupPlaka = new System.Windows.Forms.FlowLayoutPanel();
         this.lblPlaka = new System.Windows.Forms.Label();
@@ -48,6 +64,7 @@ partial class AracHareketleriForm
         this.groupTarih = new System.Windows.Forms.FlowLayoutPanel();
         this.lblTarih = new System.Windows.Forms.Label();
         this.dtpTarih = new System.Windows.Forms.DateTimePicker();
+        this.btnTarihOnayla = new System.Windows.Forms.Button();
         this.groupHiz = new System.Windows.Forms.FlowLayoutPanel();
         this.lblHiz = new System.Windows.Forms.Label();
         this.nudHiz = new System.Windows.Forms.NumericUpDown();
@@ -59,8 +76,20 @@ partial class AracHareketleriForm
         this.btnSil = new System.Windows.Forms.Button();
         this.btnYenile = new System.Windows.Forms.Button();
         this.btnHareketRaporu = new System.Windows.Forms.Button();
+        this.flowFiltre = new System.Windows.Forms.FlowLayoutPanel();
+        this.lblFiltreBaslik = new System.Windows.Forms.Label();
+        this.cmbFiltrePlaka = new System.Windows.Forms.ComboBox();
+        this.chkFiltreTarih = new System.Windows.Forms.CheckBox();
+        this.dtpFiltreTarih = new System.Windows.Forms.DateTimePicker();
+        this.lblFiltreHiz = new System.Windows.Forms.Label();
+        this.txtFiltreHiz = new System.Windows.Forms.TextBox();
+        this.lblFiltreKm = new System.Windows.Forms.Label();
+        this.txtFiltreKm = new System.Windows.Forms.TextBox();
+        this.btnFiltreUygula = new System.Windows.Forms.Button();
+        this.btnFiltreTemizle = new System.Windows.Forms.Button();
         this.dgvHareketler = new System.Windows.Forms.DataGridView();
         this.lblStatus = new System.Windows.Forms.Label();
+        this.tableRoot.SuspendLayout();
         this.flowUst.SuspendLayout();
         this.groupPlaka.SuspendLayout();
         this.groupTarih.SuspendLayout();
@@ -68,14 +97,33 @@ partial class AracHareketleriForm
         ((System.ComponentModel.ISupportInitialize)(this.nudHiz)).BeginInit();
         this.groupKm.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)(this.nudKm)).BeginInit();
+        this.flowFiltre.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)(this.dgvHareketler)).BeginInit();
         this.SuspendLayout();
+        //
+        // tableRoot -- ust (degisken boy) sihirbaz + alt (kalani doldur) grid icin 2 satirli
+        // duzen. FlowLayoutPanel(Dock=Top) + DataGridView(Dock=Fill) kardes kontrol kombinasyonu
+        // calisma zamaninda (gruplar acilip kapaninca) grid'in yeniden hizalanmasini guvenilir
+        // yapmiyordu (basliklar/ust satirlar eski konumda "takili" kalabiliyordu) - TableLayoutPanel
+        // bu senaryo icin WinForms'un onerilen, daha guvenilir cozumu.
+        //
+        this.tableRoot.ColumnCount = 1;
+        this.tableRoot.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        this.tableRoot.Dock = System.Windows.Forms.DockStyle.Fill;
+        this.tableRoot.RowCount = 3;
+        this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        this.tableRoot.Controls.Add(this.flowUst, 0, 0);
+        this.tableRoot.Controls.Add(this.flowFiltre, 0, 1);
+        this.tableRoot.Controls.Add(this.dgvHareketler, 0, 2);
+        this.tableRoot.Name = "tableRoot";
         //
         // flowUst  -- pencere daralinca gruplar/butonlar alt satira kayar (responsive)
         //
         this.flowUst.AutoSize = true;
         this.flowUst.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        this.flowUst.Dock = System.Windows.Forms.DockStyle.Top;
+        this.flowUst.Dock = System.Windows.Forms.DockStyle.Fill;
         this.flowUst.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
         this.flowUst.WrapContents = true;
         this.flowUst.Padding = new System.Windows.Forms.Padding(10);
@@ -124,6 +172,7 @@ partial class AracHareketleriForm
         this.groupTarih.Visible = false;
         this.groupTarih.Controls.Add(this.lblTarih);
         this.groupTarih.Controls.Add(this.dtpTarih);
+        this.groupTarih.Controls.Add(this.btnTarihOnayla);
         this.groupTarih.Name = "groupTarih";
         this.groupTarih.TabIndex = 1;
         //
@@ -137,11 +186,21 @@ partial class AracHareketleriForm
         // dtpTarih
         //
         this.dtpTarih.Format = System.Windows.Forms.DateTimePickerFormat.Short;
-        this.dtpTarih.Margin = new System.Windows.Forms.Padding(0);
+        this.dtpTarih.Margin = new System.Windows.Forms.Padding(0, 0, 0, 6);
         this.dtpTarih.Name = "dtpTarih";
         this.dtpTarih.Size = new System.Drawing.Size(160, 23);
         this.dtpTarih.TabIndex = 0;
         this.dtpTarih.ValueChanged += new System.EventHandler(this.dtpTarih_ValueChanged);
+        //
+        // btnTarihOnayla  -- tarih kesinlesmeden (bu butona basilmadan) sonraki adimlar acilmaz
+        //
+        this.btnTarihOnayla.Margin = new System.Windows.Forms.Padding(0);
+        this.btnTarihOnayla.Name = "btnTarihOnayla";
+        this.btnTarihOnayla.Size = new System.Drawing.Size(160, 27);
+        this.btnTarihOnayla.TabIndex = 1;
+        this.btnTarihOnayla.Text = "Tarihi Onayla →";
+        this.btnTarihOnayla.UseVisualStyleBackColor = true;
+        this.btnTarihOnayla.Click += new System.EventHandler(this.btnTarihOnayla_Click);
         //
         // groupHiz  -- Adim 3: hiz (NumericUpDown kendi sinirini zaten uyguluyor -> "dogrulanmis")
         //
@@ -249,11 +308,116 @@ partial class AracHareketleriForm
         this.btnHareketRaporu.UseVisualStyleBackColor = true;
         this.btnHareketRaporu.Click += new System.EventHandler(this.btnHareketRaporu_Click);
         //
+        // flowFiltre -- grid'in uzerindeki filtre seridi: doldurulan her alan, o alana TAM
+        // ESIT olan satirlari gosterir (bos birakilan alanlar filtreye dahil edilmez).
+        //
+        this.flowFiltre.AutoSize = true;
+        this.flowFiltre.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+        this.flowFiltre.Dock = System.Windows.Forms.DockStyle.Fill;
+        this.flowFiltre.WrapContents = true;
+        this.flowFiltre.Padding = new System.Windows.Forms.Padding(10, 4, 10, 4);
+        this.flowFiltre.Controls.Add(this.lblFiltreBaslik);
+        this.flowFiltre.Controls.Add(this.cmbFiltrePlaka);
+        this.flowFiltre.Controls.Add(this.chkFiltreTarih);
+        this.flowFiltre.Controls.Add(this.dtpFiltreTarih);
+        this.flowFiltre.Controls.Add(this.lblFiltreHiz);
+        this.flowFiltre.Controls.Add(this.txtFiltreHiz);
+        this.flowFiltre.Controls.Add(this.lblFiltreKm);
+        this.flowFiltre.Controls.Add(this.txtFiltreKm);
+        this.flowFiltre.Controls.Add(this.btnFiltreUygula);
+        this.flowFiltre.Controls.Add(this.btnFiltreTemizle);
+        this.flowFiltre.Name = "flowFiltre";
+        this.flowFiltre.TabIndex = 1;
+        //
+        // lblFiltreBaslik
+        //
+        this.lblFiltreBaslik.AutoSize = true;
+        this.lblFiltreBaslik.Font = new System.Drawing.Font(this.Font, System.Drawing.FontStyle.Bold);
+        this.lblFiltreBaslik.Margin = new System.Windows.Forms.Padding(3, 6, 12, 3);
+        this.lblFiltreBaslik.Name = "lblFiltreBaslik";
+        this.lblFiltreBaslik.Text = "Filtrele:";
+        //
+        // cmbFiltrePlaka
+        //
+        this.cmbFiltrePlaka.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+        this.cmbFiltrePlaka.Margin = new System.Windows.Forms.Padding(3, 3, 12, 3);
+        this.cmbFiltrePlaka.Name = "cmbFiltrePlaka";
+        this.cmbFiltrePlaka.Size = new System.Drawing.Size(140, 23);
+        this.cmbFiltrePlaka.TabIndex = 0;
+        //
+        // chkFiltreTarih
+        //
+        this.chkFiltreTarih.AutoSize = true;
+        this.chkFiltreTarih.Margin = new System.Windows.Forms.Padding(3, 5, 3, 3);
+        this.chkFiltreTarih.Name = "chkFiltreTarih";
+        this.chkFiltreTarih.Text = "Tarih:";
+        this.chkFiltreTarih.UseVisualStyleBackColor = true;
+        this.chkFiltreTarih.CheckedChanged += new System.EventHandler(this.chkFiltreTarih_CheckedChanged);
+        //
+        // dtpFiltreTarih
+        //
+        this.dtpFiltreTarih.Enabled = false;
+        this.dtpFiltreTarih.Format = System.Windows.Forms.DateTimePickerFormat.Short;
+        this.dtpFiltreTarih.Margin = new System.Windows.Forms.Padding(3, 3, 12, 3);
+        this.dtpFiltreTarih.Name = "dtpFiltreTarih";
+        this.dtpFiltreTarih.Size = new System.Drawing.Size(120, 23);
+        this.dtpFiltreTarih.TabIndex = 1;
+        //
+        // lblFiltreHiz
+        //
+        this.lblFiltreHiz.AutoSize = true;
+        this.lblFiltreHiz.Margin = new System.Windows.Forms.Padding(3, 6, 3, 3);
+        this.lblFiltreHiz.Name = "lblFiltreHiz";
+        this.lblFiltreHiz.Text = "Hız:";
+        //
+        // txtFiltreHiz
+        //
+        this.txtFiltreHiz.Margin = new System.Windows.Forms.Padding(3, 3, 12, 3);
+        this.txtFiltreHiz.Name = "txtFiltreHiz";
+        this.txtFiltreHiz.Size = new System.Drawing.Size(60, 23);
+        this.txtFiltreHiz.TabIndex = 2;
+        //
+        // lblFiltreKm
+        //
+        this.lblFiltreKm.AutoSize = true;
+        this.lblFiltreKm.Margin = new System.Windows.Forms.Padding(3, 6, 3, 3);
+        this.lblFiltreKm.Name = "lblFiltreKm";
+        this.lblFiltreKm.Text = "Km Sayacı:";
+        //
+        // txtFiltreKm
+        //
+        this.txtFiltreKm.Margin = new System.Windows.Forms.Padding(3, 3, 12, 3);
+        this.txtFiltreKm.Name = "txtFiltreKm";
+        this.txtFiltreKm.Size = new System.Drawing.Size(100, 23);
+        this.txtFiltreKm.TabIndex = 3;
+        //
+        // btnFiltreUygula
+        //
+        this.btnFiltreUygula.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
+        this.btnFiltreUygula.Name = "btnFiltreUygula";
+        this.btnFiltreUygula.Size = new System.Drawing.Size(90, 26);
+        this.btnFiltreUygula.TabIndex = 4;
+        this.btnFiltreUygula.Text = "Filtrele";
+        this.btnFiltreUygula.UseVisualStyleBackColor = true;
+        this.btnFiltreUygula.Click += new System.EventHandler(this.btnFiltreUygula_Click);
+        //
+        // btnFiltreTemizle
+        //
+        this.btnFiltreTemizle.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
+        this.btnFiltreTemizle.Name = "btnFiltreTemizle";
+        this.btnFiltreTemizle.Size = new System.Drawing.Size(90, 26);
+        this.btnFiltreTemizle.TabIndex = 5;
+        this.btnFiltreTemizle.Text = "Temizle";
+        this.btnFiltreTemizle.UseVisualStyleBackColor = true;
+        this.btnFiltreTemizle.Click += new System.EventHandler(this.btnFiltreTemizle_Click);
+        //
         // dgvHareketler
         //
         this.dgvHareketler.AllowUserToAddRows = false;
         this.dgvHareketler.AllowUserToDeleteRows = false;
         this.dgvHareketler.AutoGenerateColumns = false;
+        this.dgvHareketler.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+        this.dgvHareketler.ColumnHeadersHeight = 32;
         this.dgvHareketler.Dock = System.Windows.Forms.DockStyle.Fill;
         this.dgvHareketler.ReadOnly = true;
         this.dgvHareketler.RowHeadersVisible = false;
@@ -278,14 +442,15 @@ partial class AracHareketleriForm
         this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         this.ClientSize = new System.Drawing.Size(1000, 600);
-        this.Controls.Add(this.flowUst);
         this.Controls.Add(this.lblStatus);
-        this.Controls.Add(this.dgvHareketler);
+        this.Controls.Add(this.tableRoot);
         this.MinimumSize = new System.Drawing.Size(420, 320);
         this.Name = "AracHareketleriForm";
         this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
         this.Text = "Seyir Mobil - Araç Hareketleri";
         this.Load += new System.EventHandler(this.AracHareketleriForm_Load);
+        this.tableRoot.ResumeLayout(false);
+        this.tableRoot.PerformLayout();
         this.flowUst.ResumeLayout(false);
         this.flowUst.PerformLayout();
         this.groupPlaka.ResumeLayout(false);
@@ -298,6 +463,8 @@ partial class AracHareketleriForm
         this.groupKm.ResumeLayout(false);
         this.groupKm.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)(this.nudKm)).EndInit();
+        this.flowFiltre.ResumeLayout(false);
+        this.flowFiltre.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)(this.dgvHareketler)).EndInit();
         this.ResumeLayout(false);
     }

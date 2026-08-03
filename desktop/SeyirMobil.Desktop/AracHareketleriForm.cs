@@ -7,6 +7,14 @@ public partial class AracHareketleriForm : Form
 {
     private readonly AracHareketApiClient _apiClient = new();
 
+    // Ayni anda birden fazla sinir hesaplama istegi cakisirsa (ör. plaka hizli degistirilirse),
+    // sadece EN SON baslatilan istegin sonucu UI'a uygulanir - eskisi "surum" uyusmadigi icin
+    // sessizce yok sayilir.
+    private int _sinirSorgusuSurumu;
+
+    // Filtre seridi, API'ye tekrar gitmeden bu listenin uzerinde bellekte calisiyor.
+    private List<AracHareketDto> _tumHareketler = [];
+
     public AracHareketleriForm()
     {
         InitializeComponent();
@@ -15,6 +23,14 @@ public partial class AracHareketleriForm : Form
 
     private void SetupGridColumns()
     {
+        // Basliklarin her zaman gorunur ve okunakli olmasi icin acikca ayarlaniyor.
+        dgvHareketler.ColumnHeadersVisible = true;
+        dgvHareketler.EnableHeadersVisualStyles = false;
+        dgvHareketler.ColumnHeadersDefaultCellStyle.BackColor = Color.WhiteSmoke;
+        dgvHareketler.ColumnHeadersDefaultCellStyle.ForeColor = Color.Black;
+        dgvHareketler.ColumnHeadersDefaultCellStyle.Font = new Font(dgvHareketler.Font, FontStyle.Bold);
+        dgvHareketler.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+
         dgvHareketler.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "AracId",
@@ -58,6 +74,7 @@ public partial class AracHareketleriForm : Form
     {
         await RefreshGridAsync();
         await PlakalarYukleAsync();
+        FiltrePlakaListesiniDoldur();
     }
 
     private async void btnYenile_Click(object? sender, EventArgs e)
@@ -76,9 +93,9 @@ public partial class AracHareketleriForm : Form
         lblStatus.Text = "Yükleniyor...";
         try
         {
-            var hareketler = await _apiClient.GetTumHareketlerAsync();
-            dgvHareketler.DataSource = hareketler;
-            lblStatus.Text = $"{hareketler.Count} hareket kaydı yüklendi.";
+            _tumHareketler = await _apiClient.GetTumHareketlerAsync();
+            dgvHareketler.DataSource = _tumHareketler;
+            lblStatus.Text = $"{_tumHareketler.Count} hareket kaydı yüklendi.";
         }
         catch (Exception ex)
         {
@@ -88,6 +105,14 @@ public partial class AracHareketleriForm : Form
                 "Bağlantı Hatası",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Error);
+        }
+        finally
+        {
+            // flowUst'un yuksekligi adim adim degistigi icin (gruplar acilip kapaniyor),
+            // dgvHareketler'in (Dock=Fill) hemen dogru sekilde yeniden hizalanmasini garantiler -
+            // aksi halde basliklar/ust satirlar bir onceki yerlesimin altinda kalabiliyordu.
+            flowUst.PerformLayout();
+            PerformLayout();
         }
     }
 
@@ -133,17 +158,24 @@ public partial class AracHareketleriForm : Form
         }
     }
 
-    // ---------- Ekleme sihirbazı (4 adım: Plaka -> Tarih -> Hız -> Km Sayacı) ----------
+    // ---------- Ekleme sihirbazı (4 adım: Plaka -> Tarih (Onayla) -> Hız -> Km Sayacı) ----------
 
     private async Task PlakalarYukleAsync()
     {
         try
         {
             var plakalar = await _apiClient.GetPlakalarAsync();
+
+            // DataSource atarken WinForms ilk ogeyi otomatik secip SelectedIndexChanged'i hemen
+            // tetikliyor - bu istenmeyen bir sihirbaz baslangicina yol aciyordu (bkz. 2026-08-03
+            // kullanici bulgusu). Baglama sirasinda event'i gecici olarak ayirip, listeyi
+            // SECIMSIZ (SelectedIndex=-1) birakip SONRA event'i tekrar bagliyoruz.
+            cmbPlaka.SelectedIndexChanged -= cmbPlaka_SelectedIndexChanged;
             cmbPlaka.DataSource = plakalar;
             cmbPlaka.DisplayMember = nameof(AracPlakaLookupDto.AracPlaka);
             cmbPlaka.ValueMember = nameof(AracPlakaLookupDto.AracId);
             cmbPlaka.SelectedIndex = -1;
+            cmbPlaka.SelectedIndexChanged += cmbPlaka_SelectedIndexChanged;
         }
         catch (Exception ex)
         {
@@ -151,34 +183,38 @@ public partial class AracHareketleriForm : Form
         }
     }
 
-    private async void cmbPlaka_SelectedIndexChanged(object? sender, EventArgs e)
+    private void cmbPlaka_SelectedIndexChanged(object? sender, EventArgs e)
     {
+        // Adim 1 degisince, henuz tamamlanmamis TUM sonraki adimlar sifirlanir - onceki plaka
+        // icin hesaplanmis sinirlar/degerler yanlislikla yeni plakaya tasinmasin diye.
+        SonrakiAdimlariSifirla();
+
         if (cmbPlaka.SelectedIndex < 0)
         {
             groupTarih.Visible = false;
-            groupHiz.Visible = false;
-            groupKm.Visible = false;
-            btnEkle.Enabled = false;
             return;
         }
 
-        // Adim 1 (plaka) tamamlandi -> Adim 2 (tarih) gorunur olur, varsayilan bugun.
         groupTarih.Visible = true;
-        var bugun = DateTime.Today;
-        if (dtpTarih.Value.Date == bugun)
-        {
-            // Deger zaten bugun oldugu icin ValueChanged tetiklenmeyecek, sinirlari elle hesapla.
-            await GuncelleSinirlarVeAdimlariAsync();
-        }
-        else
-        {
-            dtpTarih.Value = bugun; // bu satir dtpTarih_ValueChanged'i tetikleyip sinirlari hesaplatir
-        }
+        dtpTarih.Value = DateTime.Today;
+        flowUst.PerformLayout();
     }
 
-    private async void dtpTarih_ValueChanged(object? sender, EventArgs e)
+    private void dtpTarih_ValueChanged(object? sender, EventArgs e)
     {
-        await GuncelleSinirlarVeAdimlariAsync();
+        // Tarih degistigi (veya ilk kez ayarlandigi) an, henuz "onaylanmadigi" icin sonraki
+        // adimlar (hiz/km) gizli kalir - kullanici "Tarihi Onayla"ya basmadan gorunmezler.
+        SonrakiAdimlariSifirla();
+    }
+
+    private void SonrakiAdimlariSifirla()
+    {
+        groupHiz.Visible = false;
+        groupKm.Visible = false;
+        btnEkle.Enabled = false;
+        lblSinirBilgisi.Text = "";
+        flowUst.PerformLayout();
+        PerformLayout();
     }
 
     private void nudHiz_ValueChanged(object? sender, EventArgs e)
@@ -186,8 +222,13 @@ public partial class AracHareketleriForm : Form
         // Hiz, NumericUpDown'un kendi Minimum/Maximum'u ile zaten "dogrulanmis" sayilir.
     }
 
-    // Secilen plaka + tarihe gore en yakin onceki/sonraki okumayi backend'den ceker, km sayaci
-    // icin gecerli araligi (Adim 4) hesaplayip Adim 3 (hiz) + Adim 4'u (km) gosterir.
+    private async void btnTarihOnayla_Click(object? sender, EventArgs e)
+    {
+        await GuncelleSinirlarVeAdimlariAsync();
+    }
+
+    // Secilen plaka + "onaylanmis" tarihe gore en yakin onceki/sonraki okumayi backend'den
+    // ceker, km sayaci icin gecerli araligi hesaplayip Adim 3 (hiz) + Adim 4'u (km) gosterir.
     private async Task GuncelleSinirlarVeAdimlariAsync()
     {
         if (cmbPlaka.SelectedItem is not AracPlakaLookupDto secilenArac)
@@ -195,15 +236,20 @@ public partial class AracHareketleriForm : Form
             return;
         }
 
+        var buSurum = ++_sinirSorgusuSurumu;
         var tarih = DateOnly.FromDateTime(dtpTarih.Value);
         lblStatus.Text = "Sınırlar hesaplanıyor...";
-        groupHiz.Visible = false;
-        groupKm.Visible = false;
-        btnEkle.Enabled = false;
 
         try
         {
             var sinirlar = await _apiClient.GetSinirlarAsync(secilenArac.AracPlaka, tarih);
+
+            // Bu bekleme surerken kullanici plakayi/tarihi degistirmis olabilir - o zaman bu
+            // sonuc artik ESKI (surum uyusmuyor), UI'a hic dokunmadan sessizce cikilir.
+            if (buSurum != _sinirSorgusuSurumu)
+            {
+                return;
+            }
 
             if (sinirlar.AyniTarihVarMi)
             {
@@ -211,8 +257,6 @@ public partial class AracHareketleriForm : Form
                 return;
             }
 
-            // NumericUpDown'un Minimum/Maximum siralama hatasi vermemesi icin once genis bir
-            // araliga sifirlanip SONRA gercek (dar) araliga cekiliyor.
             nudKm.Minimum = 0m;
             nudKm.Maximum = 99999999.99m;
 
@@ -240,10 +284,16 @@ public partial class AracHareketleriForm : Form
             groupHiz.Visible = true;
             groupKm.Visible = true;
             btnEkle.Enabled = true;
+            flowUst.PerformLayout();
+            PerformLayout();
             lblStatus.Text = "Hız ve km sayacını girip Ekle'ye basabilirsin.";
         }
         catch (Exception ex)
         {
+            if (buSurum != _sinirSorgusuSurumu)
+            {
+                return;
+            }
             lblStatus.Text = "Sınırlar hesaplanamadı.";
             MessageBox.Show($"Sınırlar hesaplanamadı.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -272,9 +322,6 @@ public partial class AracHareketleriForm : Form
 
             // Sihirbazi basa sar.
             cmbPlaka.SelectedIndex = -1;
-            groupTarih.Visible = false;
-            groupHiz.Visible = false;
-            groupKm.Visible = false;
 
             await RefreshGridAsync();
         }
@@ -284,5 +331,78 @@ public partial class AracHareketleriForm : Form
             MessageBox.Show($"Kayıt eklenemedi.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             btnEkle.Enabled = true;
         }
+    }
+
+    // ---------- Filtre şeridi (yerelde, bellekte - API'ye tekrar gitmez) ----------
+
+    private const string FiltreTumu = "Tümü";
+
+    private void FiltrePlakaListesiniDoldur()
+    {
+        var plakalar = _tumHareketler
+            .Select(h => h.AracPlaka)
+            .Distinct()
+            .OrderBy(p => p)
+            .ToList();
+        plakalar.Insert(0, FiltreTumu);
+
+        cmbFiltrePlaka.DataSource = plakalar;
+        cmbFiltrePlaka.SelectedIndex = 0;
+    }
+
+    private void chkFiltreTarih_CheckedChanged(object? sender, EventArgs e)
+    {
+        dtpFiltreTarih.Enabled = chkFiltreTarih.Checked;
+    }
+
+    private void btnFiltreUygula_Click(object? sender, EventArgs e)
+    {
+        IEnumerable<AracHareketDto> sonuc = _tumHareketler;
+
+        if (cmbFiltrePlaka.SelectedItem is string plaka && plaka != FiltreTumu)
+        {
+            sonuc = sonuc.Where(h => h.AracPlaka == plaka);
+        }
+
+        if (chkFiltreTarih.Checked)
+        {
+            var tarih = DateOnly.FromDateTime(dtpFiltreTarih.Value);
+            sonuc = sonuc.Where(h => h.VeriTarihi == tarih);
+        }
+
+        if (!string.IsNullOrWhiteSpace(txtFiltreHiz.Text))
+        {
+            if (!int.TryParse(txtFiltreHiz.Text.Trim(), out var hiz))
+            {
+                MessageBox.Show("Hız filtresi geçerli bir tam sayı olmalı.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            sonuc = sonuc.Where(h => h.Hiz == hiz);
+        }
+
+        if (!string.IsNullOrWhiteSpace(txtFiltreKm.Text))
+        {
+            if (!decimal.TryParse(txtFiltreKm.Text.Trim(), out var km))
+            {
+                MessageBox.Show("Km sayacı filtresi geçerli bir sayı olmalı.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            sonuc = sonuc.Where(h => h.KmSayaci == km);
+        }
+
+        var liste = sonuc.ToList();
+        dgvHareketler.DataSource = liste;
+        lblStatus.Text = $"{liste.Count} / {_tumHareketler.Count} kayıt gösteriliyor (filtreli).";
+    }
+
+    private void btnFiltreTemizle_Click(object? sender, EventArgs e)
+    {
+        cmbFiltrePlaka.SelectedIndex = 0;
+        chkFiltreTarih.Checked = false;
+        txtFiltreHiz.Clear();
+        txtFiltreKm.Clear();
+
+        dgvHareketler.DataSource = _tumHareketler;
+        lblStatus.Text = $"{_tumHareketler.Count} hareket kaydı yüklendi.";
     }
 }

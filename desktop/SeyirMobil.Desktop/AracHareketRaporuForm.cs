@@ -15,6 +15,15 @@ public partial class AracHareketRaporuForm : Form
 
     private void SetupGridColumns()
     {
+        dgvRapor.ColumnHeadersVisible = true;
+        dgvRapor.EnableHeadersVisualStyles = false;
+        dgvRapor.ColumnHeadersDefaultCellStyle.BackColor = Color.WhiteSmoke;
+        dgvRapor.ColumnHeadersDefaultCellStyle.ForeColor = Color.Black;
+        dgvRapor.ColumnHeadersDefaultCellStyle.Font = new Font(dgvRapor.Font, FontStyle.Bold);
+        dgvRapor.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
+        dgvRapor.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+        dgvRapor.ColumnHeadersHeight = 32;
+
         dgvRapor.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "AracPlaka",

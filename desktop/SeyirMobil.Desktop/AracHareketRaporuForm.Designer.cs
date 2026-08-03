@@ -13,6 +13,7 @@ partial class AracHareketRaporuForm
         base.Dispose(disposing);
     }
 
+    private System.Windows.Forms.TableLayoutPanel tableRoot;
     private System.Windows.Forms.FlowLayoutPanel flowUst;
     private System.Windows.Forms.FlowLayoutPanel groupPlakalar;
     private System.Windows.Forms.Label lblPlakalar;
@@ -30,6 +31,7 @@ partial class AracHareketRaporuForm
 
     private void InitializeComponent()
     {
+        this.tableRoot = new System.Windows.Forms.TableLayoutPanel();
         this.flowUst = new System.Windows.Forms.FlowLayoutPanel();
         this.groupPlakalar = new System.Windows.Forms.FlowLayoutPanel();
         this.lblPlakalar = new System.Windows.Forms.Label();
@@ -44,6 +46,7 @@ partial class AracHareketRaporuForm
         this.btnGeri = new System.Windows.Forms.Button();
         this.dgvRapor = new System.Windows.Forms.DataGridView();
         this.lblStatus = new System.Windows.Forms.Label();
+        this.tableRoot.SuspendLayout();
         this.flowUst.SuspendLayout();
         this.groupPlakalar.SuspendLayout();
         this.groupBaslangic.SuspendLayout();
@@ -51,11 +54,25 @@ partial class AracHareketRaporuForm
         ((System.ComponentModel.ISupportInitialize)(this.dgvRapor)).BeginInit();
         this.SuspendLayout();
         //
+        // tableRoot -- ust (degisken boy) sihirbaz + alt (kalani doldur) grid icin 2 satirli
+        // duzen (bkz. AracHareketleriForm'daki ayni gerekce - Dock=Top/Dock=Fill kardes
+        // kombinasyonu grid'in yeniden hizalanmasinda guvenilir degildi).
+        //
+        this.tableRoot.ColumnCount = 1;
+        this.tableRoot.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        this.tableRoot.Dock = System.Windows.Forms.DockStyle.Fill;
+        this.tableRoot.RowCount = 2;
+        this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+        this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        this.tableRoot.Controls.Add(this.flowUst, 0, 0);
+        this.tableRoot.Controls.Add(this.dgvRapor, 0, 1);
+        this.tableRoot.Name = "tableRoot";
+        //
         // flowUst -- pencere daralinca gruplar alt satira kayar (responsive)
         //
         this.flowUst.AutoSize = true;
         this.flowUst.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-        this.flowUst.Dock = System.Windows.Forms.DockStyle.Top;
+        this.flowUst.Dock = System.Windows.Forms.DockStyle.Fill;
         this.flowUst.WrapContents = true;
         this.flowUst.Padding = new System.Windows.Forms.Padding(10);
         this.flowUst.Controls.Add(this.groupPlakalar);
@@ -194,14 +211,15 @@ partial class AracHareketRaporuForm
         this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         this.ClientSize = new System.Drawing.Size(820, 561);
-        this.Controls.Add(this.flowUst);
         this.Controls.Add(this.lblStatus);
-        this.Controls.Add(this.dgvRapor);
+        this.Controls.Add(this.tableRoot);
         this.MinimumSize = new System.Drawing.Size(420, 380);
         this.Name = "AracHareketRaporuForm";
         this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
         this.Text = "Araç Hareket Raporu";
         this.Load += new System.EventHandler(this.AracHareketRaporuForm_Load);
+        this.tableRoot.ResumeLayout(false);
+        this.tableRoot.PerformLayout();
         this.flowUst.ResumeLayout(false);
         this.flowUst.PerformLayout();
         this.groupPlakalar.ResumeLayout(false);

@@ -95,10 +95,11 @@ app.MapGet("/api/arac-hareketleri/rapor", async (string plaka, DateOnly baslangi
 .WithName("GetAracHareketRaporu");
 
 // Ana ekranin listesi: tum arac hareketlerini (butun okumalari) donuyor.
+// Siralama: tarihe gore (en yeni ustte), ayni tarihte birden fazla kayit varsa Id kucuk olan ustte.
 app.MapGet("/api/arac-hareketleri", async (SeyirMobilDbContext db) =>
     await db.AracHareketleri
-        .OrderBy(h => h.AracId)
-        .ThenBy(h => h.VeriTarihi)
+        .OrderByDescending(h => h.VeriTarihi)
+        .ThenBy(h => h.Id)
         .ToListAsync())
     .WithName("GetAracHareketleri");
 
