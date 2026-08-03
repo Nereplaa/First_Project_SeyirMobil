@@ -10,6 +10,20 @@ public record AracHareketDto(
     [property: JsonPropertyName("hiz")] int Hiz,
     [property: JsonPropertyName("kmSayaci")] decimal KmSayaci);
 
+public record AracHareketSinirlarDto(
+    [property: JsonPropertyName("ayniTarihVarMi")] bool AyniTarihVarMi,
+    [property: JsonPropertyName("oncekiTarih")] DateOnly? OncekiTarih,
+    [property: JsonPropertyName("oncekiKm")] decimal? OncekiKm,
+    [property: JsonPropertyName("sonrakiTarih")] DateOnly? SonrakiTarih,
+    [property: JsonPropertyName("sonrakiKm")] decimal? SonrakiKm);
+
+public record CreateAracHareketRequestDto(
+    [property: JsonPropertyName("aracId")] int AracId,
+    [property: JsonPropertyName("aracPlaka")] string AracPlaka,
+    [property: JsonPropertyName("veriTarihi")] DateOnly VeriTarihi,
+    [property: JsonPropertyName("hiz")] int Hiz,
+    [property: JsonPropertyName("kmSayaci")] decimal KmSayaci);
+
 public record AracPlakaLookupDto(
     [property: JsonPropertyName("aracId")] int AracId,
     [property: JsonPropertyName("aracPlaka")] string AracPlaka);

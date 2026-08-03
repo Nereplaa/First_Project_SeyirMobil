@@ -102,6 +102,103 @@ app.MapGet("/api/arac-hareketleri", async (SeyirMobilDbContext db) =>
         .ToListAsync())
     .WithName("GetAracHareketleri");
 
+// Bir plaka + tarih icin en yakin onceki/sonraki okumayi (ve ayni tarihte kayit olup olmadigini)
+// donuyor - masaustu, yeni kayit eklerken km sayaci icin gecerli araligi buradan hesapliyor.
+app.MapGet("/api/arac-hareketleri/sinirlar", async (string plaka, DateOnly tarih, SeyirMobilDbContext db) =>
+{
+    var ayniTarihVarMi = await db.AracHareketleri
+        .AnyAsync(h => h.AracPlaka == plaka && h.VeriTarihi == tarih);
+
+    var onceki = await db.AracHareketleri
+        .Where(h => h.AracPlaka == plaka && h.VeriTarihi < tarih)
+        .OrderByDescending(h => h.VeriTarihi)
+        .FirstOrDefaultAsync();
+
+    var sonraki = await db.AracHareketleri
+        .Where(h => h.AracPlaka == plaka && h.VeriTarihi > tarih)
+        .OrderBy(h => h.VeriTarihi)
+        .FirstOrDefaultAsync();
+
+    return Results.Ok(new AracHareketSinirlar(
+        ayniTarihVarMi,
+        onceki?.VeriTarihi, onceki?.KmSayaci,
+        sonraki?.VeriTarihi, sonraki?.KmSayaci));
+})
+.WithName("GetAracHareketSinirlari");
+
+// Yeni bir arac hareketi (okuma) ekler - km sayacinin, ayni plakanin en yakin onceki/sonraki
+// okumalari arasinda (KESIN sinirlarla, esit degil) kalmasi sunucu tarafinda da dogrulanir -
+// client tarafindaki NumericUpDown sinirlamasi sadece UX kolayligi, gercek kaynak burasi.
+app.MapPost("/api/arac-hareketleri", async (CreateAracHareketRequest request, SeyirMobilDbContext db) =>
+{
+    if (request.Hiz < 0 || request.Hiz > 300)
+    {
+        return Results.BadRequest(new { message = "Hız 0-300 aralığında olmalı." });
+    }
+
+    var ayniTarihVarMi = await db.AracHareketleri
+        .AnyAsync(h => h.AracPlaka == request.AracPlaka && h.VeriTarihi == request.VeriTarihi);
+    if (ayniTarihVarMi)
+    {
+        return Results.BadRequest(new { message = "Bu plaka için bu tarihte zaten bir kayıt var." });
+    }
+
+    var onceki = await db.AracHareketleri
+        .Where(h => h.AracPlaka == request.AracPlaka && h.VeriTarihi < request.VeriTarihi)
+        .OrderByDescending(h => h.VeriTarihi)
+        .FirstOrDefaultAsync();
+
+    var sonraki = await db.AracHareketleri
+        .Where(h => h.AracPlaka == request.AracPlaka && h.VeriTarihi > request.VeriTarihi)
+        .OrderBy(h => h.VeriTarihi)
+        .FirstOrDefaultAsync();
+
+    if (onceki is not null && request.KmSayaci <= onceki.KmSayaci)
+    {
+        return Results.BadRequest(new
+        {
+            message = $"Km sayacı, {onceki.VeriTarihi:dd.MM.yyyy} tarihli {onceki.KmSayaci:N2} km değerinden büyük olmalı."
+        });
+    }
+    if (sonraki is not null && request.KmSayaci >= sonraki.KmSayaci)
+    {
+        return Results.BadRequest(new
+        {
+            message = $"Km sayacı, {sonraki.VeriTarihi:dd.MM.yyyy} tarihli {sonraki.KmSayaci:N2} km değerinden küçük olmalı."
+        });
+    }
+    if (request.KmSayaci < 0)
+    {
+        return Results.BadRequest(new { message = "Km sayacı negatif olamaz." });
+    }
+
+    var hareket = new AracHareket
+    {
+        AracId = request.AracId,
+        AracPlaka = request.AracPlaka,
+        VeriTarihi = request.VeriTarihi,
+        Hiz = request.Hiz,
+        KmSayaci = request.KmSayaci
+    };
+    db.AracHareketleri.Add(hareket);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/arac-hareketleri/{hareket.Id}", hareket);
+})
+.WithName("CreateAracHareket");
+
+app.MapDelete("/api/arac-hareketleri/{id:int}", async (int id, SeyirMobilDbContext db) =>
+{
+    var hareket = await db.AracHareketleri.FindAsync(id);
+    if (hareket is null)
+    {
+        return Results.NotFound();
+    }
+    db.AracHareketleri.Remove(hareket);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+})
+.WithName("DeleteAracHareket");
+
 // Masaustu rapor ekranindaki plaka secim listesi icin: her aracin benzersiz AracId'si +
 // plakasi. Ayni AracId birden cok satirda gectigi icin Distinct() ile tekillestiriliyor.
 app.MapGet("/api/arac-hareketleri/plakalar", async (SeyirMobilDbContext db) =>

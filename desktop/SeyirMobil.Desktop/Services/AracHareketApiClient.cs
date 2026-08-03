@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using SeyirMobil.Desktop.Models;
 
 namespace SeyirMobil.Desktop.Services;
@@ -34,5 +35,46 @@ public class AracHareketApiClient
         response.EnsureSuccessStatusCode();
         var result = await response.Content.ReadFromJsonAsync<List<AracRaporSonucuDto>>();
         return result ?? [];
+    }
+
+    public async Task<AracHareketSinirlarDto> GetSinirlarAsync(string plaka, DateOnly tarih)
+    {
+        var url = $"api/arac-hareketleri/sinirlar?plaka={Uri.EscapeDataString(plaka)}&tarih={tarih:yyyy-MM-dd}";
+        var result = await _http.GetFromJsonAsync<AracHareketSinirlarDto>(url);
+        return result ?? new AracHareketSinirlarDto(false, null, null, null, null);
+    }
+
+    public async Task CreateHareketAsync(CreateAracHareketRequestDto request)
+    {
+        var response = await _http.PostAsJsonAsync("api/arac-hareketleri", request);
+        if (!response.IsSuccessStatusCode)
+        {
+            var mesaj = await OkuHataMesajiAsync(response);
+            throw new InvalidOperationException(mesaj);
+        }
+    }
+
+    public async Task DeleteHareketAsync(int id)
+    {
+        var response = await _http.DeleteAsync($"api/arac-hareketleri/{id}");
+        response.EnsureSuccessStatusCode();
+    }
+
+    private static async Task<string> OkuHataMesajiAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var gövde = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(gövde);
+            if (doc.RootElement.TryGetProperty("message", out var mesajElemani))
+            {
+                return mesajElemani.GetString() ?? response.ReasonPhrase ?? "Bilinmeyen hata";
+            }
+        }
+        catch
+        {
+            // gövde JSON degilse asagida genel mesaja dusulur
+        }
+        return response.ReasonPhrase ?? "Bilinmeyen hata";
     }
 }
