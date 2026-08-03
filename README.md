@@ -44,9 +44,11 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
 
 - ✅ Veritabanı kuruldu, `Vehicles` tablosu oluşturuldu ve test verisiyle dolduruldu.
 - ✅ .NET 10 SDK kuruldu.
-- ✅ Backend API çalışıyor — `Vehicles` için listeleme/ekleme endpoint'leri, Swagger ile test
-  edildi.
-- 🔄 WinForms masaüstü istemcisi — sırada.
+- ✅ Backend API çalışıyor — `Vehicles` için listeleme/ekleme/silme endpoint'leri, plaka doğrulama
+  ile birlikte, Swagger ile test edildi.
+- ✅ WinForms masaüstü istemcisi çalışıyor — listeleme, ekleme (Türkiye plaka formatı doğrulamalı),
+  silme.
+- 🔄 Kurumdan resmi gereksinim dokümanı bekleniyor.
 
 Detaylı ilerleme için bkz. [TIMELINE.md](TIMELINE.md).
 
@@ -60,8 +62,8 @@ Backend, masaüstü ve veritabanı katmanları en üst seviyede net şekilde ayr
 │   └── 002_seed_dummy_data.sql
 ├── backend/
 │   └── SeyirMobil.Api/          ← ASP.NET Core Web API + EF Core (tüm iş mantığı, DB erişimi)
-├── desktop/                     ← WinForms masaüstü istemcisi (yakında eklenecek)
-│   └── SeyirMobil.Desktop/
+├── desktop/
+│   └── SeyirMobil.Desktop/      ← WinForms masaüstü istemcisi (listeleme/ekleme/silme)
 ├── SeyirMobil.slnx               ← .NET solution (backend + desktop projelerini kapsar)
 ├── README.md
 └── TIMELINE.md

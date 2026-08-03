@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SeyirMobil.Api.Data;
 using SeyirMobil.Api.Models;
+using SeyirMobil.Api.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,9 +31,14 @@ app.MapGet("/api/vehicles/{id:int}", async (int id, SeyirMobilDbContext db) =>
 
 app.MapPost("/api/vehicles", async (CreateVehicleRequest request, SeyirMobilDbContext db) =>
 {
+    if (!PlakaValidator.IsValid(request.Plaka))
+    {
+        return Results.BadRequest(new { message = "Geçersiz plaka formatı. Örnek: 34ABC123 (il kodu 01-81 + 1-3 harf + rakam)." });
+    }
+
     var vehicle = new Vehicle
     {
-        Plaka = request.Plaka,
+        Plaka = PlakaValidator.Normalize(request.Plaka),
         TotalKm = request.TotalKm,
         KayitTrh = DateTime.Now
     };
@@ -41,6 +47,19 @@ app.MapPost("/api/vehicles", async (CreateVehicleRequest request, SeyirMobilDbCo
     return Results.Created($"/api/vehicles/{vehicle.AracId}", vehicle);
 })
 .WithName("CreateVehicle");
+
+app.MapDelete("/api/vehicles/{id:int}", async (int id, SeyirMobilDbContext db) =>
+{
+    var vehicle = await db.Vehicles.FindAsync(id);
+    if (vehicle is null)
+    {
+        return Results.NotFound();
+    }
+    db.Vehicles.Remove(vehicle);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+})
+.WithName("DeleteVehicle");
 
 app.Run();
 

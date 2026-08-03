@@ -48,11 +48,22 @@ veritabanına bağlandı. `Vehicles` için temel uç noktalar (endpoint) yazıld
 
 Swagger arayüzü (`/swagger`) ile API'nin tarayıcıdan görsel olarak da denenebilmesi sağlandı.
 
+### 2026-08-03 13:54 — Masaüstü Uygulaması Hazır: Listeleme, Ekleme, Silme
+
+WinForms tabanlı masaüstü uygulaması (`SeyirMobil.Desktop`) geliştirildi ve gerçekten test edildi:
+
+- Araç listesi bir tabloda (grid) gösteriliyor.
+- Yeni araç eklenebiliyor — **plaka, gerçek Türkiye plaka formatına** (il kodu + harf + rakam)
+  göre doğrulanıyor; toplam kilometre negatif olamıyor.
+- Araç silinebiliyor (onay penceresiyle, yanlışlıkla silmeyi önlemek için).
+- Liste "Yenile" butonuyla güncellenebiliyor.
+
+Uygulama sadece backend API üzerinden çalışıyor, veritabanına hiç doğrudan bağlanmıyor.
+
 ---
 
 ## 🔜 Sıradaki Adımlar
 
-- [ ] WinForms masaüstü istemcisi — backend API'ye bağlanan arayüz (listeleme + ekleme)
 - [ ] Kurumdan gelecek resmi staj/proje gereksinim dokümanının incelenmesi
 - [ ] Web istemcisinin eklenmesi (aynı backend API üzerinden)
 - [ ] UI/UX iyileştirmeleri
