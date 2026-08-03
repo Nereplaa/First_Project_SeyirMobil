@@ -15,7 +15,7 @@ public class Vehicle
     [MaxLength(15)]
     public string Plaka { get; set; } = string.Empty;
 
-    [Column("totalkm")]
+    [Column("totalkm", TypeName = "decimal(10,2)")]
     public decimal TotalKm { get; set; }
 
     [Column("kayittrh")]

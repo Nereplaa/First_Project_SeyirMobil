@@ -62,8 +62,36 @@ Uygulama sadece backend API üzerinden çalışıyor, veritabanına hiç doğrud
 
 ---
 
+## 2026-08-03 14:48 — Kurum Gereksinimi Geldi: Araç Hareket Raporu
+
+Kurumdan resmi proje gereksinimi ulaştı: araçların zaman içindeki periyodik hareket kayıtlarından
+(tarih, hız, kilometre sayacı), verilen bir plaka ve tarih aralığı için "o aralıkta kaç km yol
+yapıldığını" gösteren bir rapor üretilmesi isteniyor.
+
+Bu doğrultuda:
+
+- Araçların zaman içindeki km sayacı okumalarını tutan yeni bir veri yapısı kuruldu, 100 satırlık
+  çeşitli örnek veriyle dolduruldu.
+- Backend'e, verilen plaka ve tarih aralığı için başlangıç km / bitiş km / yapılan km hesaplayan
+  bir rapor uç noktası eklendi ve gerçek verilerle test edildi.
+
+---
+
+### 2026-08-03 15:14 — Rapor Ekranı ve Ana Ekran Güncellemesi
+
+Masaüstü uygulamasına, kurum gereksiniminin karşılığı olan rapor ekranı eklendi:
+
+- Birden fazla araç aynı anda seçilip tek seferde rapor alınabiliyor.
+- Tarih aralığı seçimi kullanıcı hata yapamayacak şekilde tasarlandı (bitiş tarihi, başlangıçtan
+  sonraki bir tarih olmak zorunda).
+- Uygulamanın ana ekranı artık gerçek görev verisini (araçların zaman içindeki hareket kayıtlarını)
+  gösteriyor.
+- Arayüz responsive hale getirildi — pencere küçültülse bile hiçbir buton kaybolmuyor, düzen
+  kendini otomatik olarak yeniden düzenliyor.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
-- [ ] Kurumdan gelecek resmi staj/proje gereksinim dokümanının incelenmesi
 - [ ] Web istemcisinin eklenmesi (aynı backend API üzerinden)
 - [ ] UI/UX iyileştirmeleri
