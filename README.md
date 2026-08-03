@@ -52,13 +52,19 @@ Detaylı ilerleme için bkz. [TIMELINE.md](TIMELINE.md).
 
 ## Proje Yapısı
 
+Backend, masaüstü ve veritabanı katmanları en üst seviyede net şekilde ayrılmıştır:
+
 ```
-├── Database/               ← SQL script'leri (sıralı, ör. 001_..., 002_...)
+├── database/                    ← SQL script'leri (sıralı, ör. 001_..., 002_...)
+│   ├── 001_create_vehicles_table.sql
+│   └── 002_seed_dummy_data.sql
+├── backend/
+│   └── SeyirMobil.Api/          ← ASP.NET Core Web API + EF Core (tüm iş mantığı, DB erişimi)
+├── desktop/                     ← WinForms masaüstü istemcisi (yakında eklenecek)
+│   └── SeyirMobil.Desktop/
+├── SeyirMobil.slnx               ← .NET solution (backend + desktop projelerini kapsar)
 ├── README.md
-├── TIMELINE.md
-└── SeyirMobil/
-    └── SeyirMobil.Api/     ← Backend (ASP.NET Core Web API + EF Core)
-        (SeyirMobil.Desktop/ ← masaüstü istemci, yakında eklenecek)
+└── TIMELINE.md
 ```
 
 ## Geliştirici
