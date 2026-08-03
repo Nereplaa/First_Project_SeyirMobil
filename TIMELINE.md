@@ -36,13 +36,23 @@ kolaylaşması ve veritabanının hiçbir istemciye doğrudan açılmadan güven
 ### 2026-08-03 13:15 — .NET 10 SDK Kurulumu
 Backend geliştirmeye başlayabilmek için .NET 10 SDK (güncel LTS sürüm) kuruldu ve doğrulandı.
 
+### 2026-08-03 13:32 — Backend API Çalışıyor: `SeyirMobil.Api`
+
+ASP.NET Core Web API projesi (.NET 10) oluşturuldu ve Entity Framework Core ile `SeyirMobilDb`
+veritabanına bağlandı. `Vehicles` için temel uç noktalar (endpoint) yazıldı ve gerçekten
+çalıştırılıp test edildi:
+
+- `GET /api/vehicles` — tüm araçları listeler
+- `GET /api/vehicles/{id}` — tek bir aracı getirir
+- `POST /api/vehicles` — yeni araç ekler
+
+Swagger arayüzü (`/swagger`) ile API'nin tarayıcıdan görsel olarak da denenebilmesi sağlandı.
+
 ---
 
 ## 🔜 Sıradaki Adımlar
 
-- [ ] ASP.NET Core Web API backend projesinin oluşturulması (`SeyirMobil.Api`)
-- [ ] `Vehicles` için temel CRUD endpoint'leri (listeleme, ekleme)
-- [ ] WinForms masaüstü istemcisi — backend API'ye bağlanan arayüz
+- [ ] WinForms masaüstü istemcisi — backend API'ye bağlanan arayüz (listeleme + ekleme)
 - [ ] Kurumdan gelecek resmi staj/proje gereksinim dokümanının incelenmesi
 - [ ] Web istemcisinin eklenmesi (aynı backend API üzerinden)
 - [ ] UI/UX iyileştirmeleri

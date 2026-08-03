@@ -44,17 +44,21 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
 
 - ✅ Veritabanı kuruldu, `Vehicles` tablosu oluşturuldu ve test verisiyle dolduruldu.
 - ✅ .NET 10 SDK kuruldu.
-- 🔄 Backend (ASP.NET Core Web API) proje iskeleti — sırada.
+- ✅ Backend API çalışıyor — `Vehicles` için listeleme/ekleme endpoint'leri, Swagger ile test
+  edildi.
+- 🔄 WinForms masaüstü istemcisi — sırada.
 
 Detaylı ilerleme için bkz. [TIMELINE.md](TIMELINE.md).
 
 ## Proje Yapısı
 
 ```
-├── Database/     ← SQL script'leri (sıralı, ör. 001_..., 002_...)
+├── Database/               ← SQL script'leri (sıralı, ör. 001_..., 002_...)
 ├── README.md
 ├── TIMELINE.md
-└── (SeyirMobil/  ← backend + masaüstü .NET solution, yakında eklenecek)
+└── SeyirMobil/
+    └── SeyirMobil.Api/     ← Backend (ASP.NET Core Web API + EF Core)
+        (SeyirMobil.Desktop/ ← masaüstü istemci, yakında eklenecek)
 ```
 
 ## Geliştirici
