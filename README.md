@@ -49,6 +49,9 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
 - ✅ WinForms masaüstü uygulaması: tüm araç hareketlerini listeliyor, çoklu plaka + tarih aralığı
   seçerek "başlangıç km / bitiş km / yapılan km" raporu oluşturuyor. Arayüz responsive — pencere
   daraltılınca kontroller alt satıra kayıyor, kaybolmuyor.
+- ✅ Yeni araç hareketi ekleme (adım adım: plaka → tarih → hız → km sayacı — km sayacı, komşu
+  kayıtlara göre tutarlı kalacak şekilde otomatik sınırlanıyor) ve kayıt silme.
+- ✅ Ana ekranda plaka/tarih/hız/km'ye göre filtreleme.
 
 Detaylı ilerleme için bkz. [TIMELINE.md](TIMELINE.md).
 

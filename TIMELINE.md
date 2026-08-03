@@ -89,6 +89,20 @@ Masaüstü uygulamasına, kurum gereksiniminin karşılığı olan rapor ekranı
 - Arayüz responsive hale getirildi — pencere küçültülse bile hiçbir buton kaybolmuyor, düzen
   kendini otomatik olarak yeniden düzenliyor.
 
+### 2026-08-03 15:41 — Yeni Kayıt Ekleme ve Silme
+
+Ana ekrana, adım adım açılan bir "yeni araç hareketi ekle" akışı eklendi: önce araç seçiliyor,
+sonra tarih (bugün önerilir, değiştirilebilir), sonra hız, en son kilometre sayacı. Kilometre
+sayacı girilirken sistem, o aracın o tarihe en yakın önceki ve sonraki kayıtlarını otomatik bulup
+girilen değerin bu ikisi arasında, gerçekçi kalmasını sağlıyor — böylece kilometre sayacı asla
+zaman içinde geriye gitmiyor. Kayıt silme de eklendi.
+
+### 2026-08-03 16:10 — Filtreleme ve Arayüz İyileştirmeleri
+
+Ana ekrandaki listeye bir filtre eklendi — plaka, tarih, hız veya kilometre değerine göre listeyi
+daraltmak artık mümkün. Ayrıca arayüz, pencere boyutundan bağımsız olarak her zaman doğru
+görünecek şekilde yeniden yapılandırıldı.
+
 ---
 
 ## 🔜 Sıradaki Adımlar
