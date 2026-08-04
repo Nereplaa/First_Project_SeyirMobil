@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using SeyirMobil.Desktop.Models;
@@ -10,10 +11,48 @@ public class AracHareketApiClient
 
     public AracHareketApiClient()
     {
-        _http = new HttpClient
+        // OturumHandler, HER cevapta 401 kontrolu yapip TokenStore'u haberdar ediyor - istemci
+        // formlarinin ayri ayri 401 kontrolu yazmasina gerek kalmiyor.
+        _http = new HttpClient(new OturumHandler())
         {
             BaseAddress = new Uri("http://localhost:5080/")
         };
+        if (TokenStore.Token is not null)
+        {
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", TokenStore.Token);
+        }
+    }
+
+    public async Task<LoginResponseDto> LoginAsync(string username, string password)
+    {
+        var response = await _http.PostAsJsonAsync("api/auth/login", new LoginRequestDto(username, password));
+        if (!response.IsSuccessStatusCode)
+        {
+            var mesaj = response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                ? "Kullanıcı adı veya şifre hatalı."
+                : await OkuHataMesajiAsync(response);
+            throw new InvalidOperationException(mesaj);
+        }
+        var result = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
+        return result ?? throw new InvalidOperationException("Sunucudan geçersiz bir yanıt alındı.");
+    }
+
+    // Basarili login sonrasi, o anki HttpClient'a token'i hemen uygular - AracHareketleriForm
+    // ayni oturumda tekrar bir ApiClient olusturmadan (constructor zaten TokenStore'dan okur,
+    // ama LoginForm'un KENDI client'i icin bu gerekli) devam edebilsin diye.
+    public void UygulaToken(string token) =>
+        _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+    public async Task LogoutAsync()
+    {
+        try
+        {
+            await _http.PostAsync("api/auth/logout", null);
+        }
+        catch
+        {
+            // Sunucuya ulasilamasa bile onemli degil - yerel oturum zaten cagiran tarafindan temizlenir.
+        }
     }
 
     public async Task<List<AracHareketDto>> GetTumHareketlerAsync()

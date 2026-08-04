@@ -1,9 +1,15 @@
 <header class="app-header">
   <h1>Seyir Mobil — Araç Takip</h1>
-  <nav>
-    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Araç Hareketleri</a>
-    <a routerLink="/rapor" routerLinkActive="active">Araç Hareket Raporu</a>
-  </nav>
+  @if (auth.girisYapilmisMi()) {
+    <nav>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Araç Hareketleri</a>
+      <a routerLink="/rapor" routerLinkActive="active">Araç Hareket Raporu</a>
+    </nav>
+    <div class="kullanici-bilgisi">
+      <span>{{ auth.username() }} ({{ auth.role() }})</span>
+      <button type="button" (click)="cikisYap()">Çıkış Yap</button>
+    </div>
+  }
 </header>
 
 <main>

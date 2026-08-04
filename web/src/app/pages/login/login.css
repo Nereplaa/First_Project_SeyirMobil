@@ -1,0 +1,28 @@
+.login-sayfasi {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 3rem;
+}
+
+.login-kart {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.login-kart h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.login-kart input {
+  width: 100%;
+}
+
+.login-kart button {
+  margin-top: 0.25rem;
+}

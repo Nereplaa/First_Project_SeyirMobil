@@ -188,12 +188,25 @@ için bir uç nokta eklendi.
 
 ---
 
+## 2026-08-04 14:31 — Giriş Ekranları Yayında: Web ve Masaüstünde Login Zorunlu
+
+Giriş sistemi artık uçtan uca çalışıyor. Hem web hem masaüstü uygulamasına bir giriş ekranı
+eklendi; sisteme erişebilmek için önce kullanıcı adı ve şifreyle giriş yapmak gerekiyor. Web'de
+oturum bilgisi tarayıcıda saklanıyor (sayfa yenilense de kaybolmuyor); masaüstünde "Beni Hatırla"
+seçeneği işaretlenirse bir sonraki açılışta otomatik giriş yapılıyor, işaretlenmezse her açılışta
+tekrar giriş istenir. Her iki arayüzde de bir "Çıkış Yap" seçeneği var.
+
+Bu adımla birlikte, daha önce herkese açık olan tüm ekranlar (araç hareketleri, raporlar) artık
+sadece giriş yapmış kullanıcılara açık.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
 - [x] Sayfalama ve Excel'e aktarma (web + masaüstü)
 - [x] Giriş (login) sistemi — backend altyapısı
 - [x] Oturum zaman aşımı (hareketsizlikte otomatik çıkış)
-- [ ] Giriş (login) sistemi — masaüstü ve web arayüzü
+- [x] Giriş (login) sistemi — masaüstü ve web arayüzü
 - [ ] UI/UX iyileştirmeleri (DevExtreme ile)
 - [ ] Docker ile konteynerleştirme

@@ -39,6 +39,7 @@ partial class AracHareketleriForm
     private System.Windows.Forms.Button btnYenile;
     private System.Windows.Forms.Button btnHareketRaporu;
     private System.Windows.Forms.Button btnExcelAktar;
+    private System.Windows.Forms.Button btnCikisYap;
 
     private System.Windows.Forms.FlowLayoutPanel flowFiltre;
     private System.Windows.Forms.Label lblFiltreBaslik;
@@ -86,6 +87,7 @@ partial class AracHareketleriForm
         this.btnYenile = new System.Windows.Forms.Button();
         this.btnHareketRaporu = new System.Windows.Forms.Button();
         this.btnExcelAktar = new System.Windows.Forms.Button();
+        this.btnCikisYap = new System.Windows.Forms.Button();
         this.flowFiltre = new System.Windows.Forms.FlowLayoutPanel();
         this.lblFiltreBaslik = new System.Windows.Forms.Label();
         this.cmbFiltrePlaka = new System.Windows.Forms.ComboBox();
@@ -168,6 +170,7 @@ partial class AracHareketleriForm
         this.flowUst.Controls.Add(this.btnYenile);
         this.flowUst.Controls.Add(this.btnHareketRaporu);
         this.flowUst.Controls.Add(this.btnExcelAktar);
+        this.flowUst.Controls.Add(this.btnCikisYap);
         this.flowUst.Name = "flowUst";
         this.flowUst.TabIndex = 0;
         //
@@ -350,6 +353,16 @@ partial class AracHareketleriForm
         this.btnExcelAktar.Text = "Excel'e Aktar";
         this.btnExcelAktar.UseVisualStyleBackColor = true;
         this.btnExcelAktar.Click += new System.EventHandler(this.btnExcelAktar_Click);
+        //
+        // btnCikisYap
+        //
+        this.btnCikisYap.Margin = new System.Windows.Forms.Padding(3, 26, 3, 3);
+        this.btnCikisYap.Name = "btnCikisYap";
+        this.btnCikisYap.Size = new System.Drawing.Size(100, 30);
+        this.btnCikisYap.TabIndex = 9;
+        this.btnCikisYap.Text = "Çıkış Yap";
+        this.btnCikisYap.UseVisualStyleBackColor = true;
+        this.btnCikisYap.Click += new System.EventHandler(this.btnCikisYap_Click);
         //
         // flowFiltre -- grid'in uzerindeki filtre seridi: doldurulan her alan, o alana TAM
         // ESIT olan satirlari gosterir (bos birakilan alanlar filtreye dahil edilmez).

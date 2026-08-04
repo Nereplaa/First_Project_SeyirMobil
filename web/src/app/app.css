@@ -38,6 +38,25 @@
   color: #fff;
 }
 
+.kullanici-bilgisi {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #d1d5db;
+  font-size: 0.85rem;
+}
+
+.kullanici-bilgisi button {
+  background: transparent;
+  border-color: #4b5563;
+  color: #d1d5db;
+}
+
+.kullanici-bilgisi button:hover {
+  background: #374151;
+  color: #fff;
+}
+
 main {
   padding: 1.25rem 1.5rem;
   width: 100%;

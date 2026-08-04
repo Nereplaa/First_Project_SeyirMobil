@@ -107,13 +107,15 @@ using (var seedScope = app.Services.CreateScope())
 
 app.MapGet("/api/vehicles", async (SeyirMobilDbContext db) =>
     await db.Vehicles.OrderBy(v => v.AracId).ToListAsync())
-    .WithName("GetVehicles");
+    .WithName("GetVehicles")
+    .RequireAuthorization();
 
 app.MapGet("/api/vehicles/{id:int}", async (int id, SeyirMobilDbContext db) =>
     await db.Vehicles.FindAsync(id) is Vehicle vehicle
         ? Results.Ok(vehicle)
         : Results.NotFound())
-    .WithName("GetVehicleById");
+    .WithName("GetVehicleById")
+    .RequireAuthorization();
 
 app.MapPost("/api/vehicles", async (CreateVehicleRequest request, SeyirMobilDbContext db) =>
 {
@@ -132,7 +134,8 @@ app.MapPost("/api/vehicles", async (CreateVehicleRequest request, SeyirMobilDbCo
     await db.SaveChangesAsync();
     return Results.Created($"/api/vehicles/{vehicle.AracId}", vehicle);
 })
-.WithName("CreateVehicle");
+.WithName("CreateVehicle")
+.RequireAuthorization();
 
 app.MapDelete("/api/vehicles/{id:int}", async (int id, SeyirMobilDbContext db) =>
 {
@@ -145,7 +148,8 @@ app.MapDelete("/api/vehicles/{id:int}", async (int id, SeyirMobilDbContext db) =
     await db.SaveChangesAsync();
     return Results.NoContent();
 })
-.WithName("DeleteVehicle");
+.WithName("DeleteVehicle")
+.RequireAuthorization();
 
 // Tarih aralığı raporu: verilen plaka + [baslangic, bitis] araliginda ilk ve son km sayaci
 // okumasi bulunur, farklari "yapilan km" olarak donulur. Filtreleme/siralama EF Core LINQ
@@ -178,7 +182,8 @@ app.MapGet("/api/arac-hareketleri/rapor", async (string plaka, DateOnly baslangi
         yapilanKm = bitisKayit.KmSayaci - baslangicKayit.KmSayaci
     });
 })
-.WithName("GetAracHareketRaporu");
+.WithName("GetAracHareketRaporu")
+.RequireAuthorization();
 
 // Ana ekranin listesi: tum arac hareketlerini (butun okumalari) donuyor.
 // Siralama: tarihe gore (en yeni ustte), ayni tarihte birden fazla kayit varsa Id kucuk olan ustte.
@@ -187,7 +192,8 @@ app.MapGet("/api/arac-hareketleri", async (SeyirMobilDbContext db) =>
         .OrderByDescending(h => h.VeriTarihi)
         .ThenBy(h => h.Id)
         .ToListAsync())
-    .WithName("GetAracHareketleri");
+    .WithName("GetAracHareketleri")
+    .RequireAuthorization();
 
 // Bir plaka + tarih icin en yakin onceki/sonraki okumayi (ve ayni tarihte kayit olup olmadigini)
 // donuyor - masaustu, yeni kayit eklerken km sayaci icin gecerli araligi buradan hesapliyor.
@@ -211,7 +217,8 @@ app.MapGet("/api/arac-hareketleri/sinirlar", async (string plaka, DateOnly tarih
         onceki?.VeriTarihi, onceki?.KmSayaci,
         sonraki?.VeriTarihi, sonraki?.KmSayaci));
 })
-.WithName("GetAracHareketSinirlari");
+.WithName("GetAracHareketSinirlari")
+.RequireAuthorization();
 
 // Yeni bir arac hareketi (okuma) ekler - km sayacinin, ayni plakanin en yakin onceki/sonraki
 // okumalari arasinda (KESIN sinirlarla, esit degil) kalmasi sunucu tarafinda da dogrulanir -
@@ -271,7 +278,8 @@ app.MapPost("/api/arac-hareketleri", async (CreateAracHareketRequest request, Se
     await db.SaveChangesAsync();
     return Results.Created($"/api/arac-hareketleri/{hareket.Id}", hareket);
 })
-.WithName("CreateAracHareket");
+.WithName("CreateAracHareket")
+.RequireAuthorization();
 
 app.MapDelete("/api/arac-hareketleri/{id:int}", async (int id, SeyirMobilDbContext db) =>
 {
@@ -284,7 +292,8 @@ app.MapDelete("/api/arac-hareketleri/{id:int}", async (int id, SeyirMobilDbConte
     await db.SaveChangesAsync();
     return Results.NoContent();
 })
-.WithName("DeleteAracHareket");
+.WithName("DeleteAracHareket")
+.RequireAuthorization();
 
 // Masaustu rapor ekranindaki plaka secim listesi icin: her aracin benzersiz AracId'si +
 // plakasi. Ayni AracId birden cok satirda gectigi icin Distinct() ile tekillestiriliyor.
@@ -302,13 +311,15 @@ app.MapGet("/api/arac-hareketleri/plakalar", async (SeyirMobilDbContext db) =>
     var sonuc = plakalar.Select(p => new AracPlakaLookup(p.AracId, p.AracPlaka));
     return Results.Ok(sonuc);
 })
-.WithName("GetAracPlakalari");
+.WithName("GetAracPlakalari")
+.RequireAuthorization();
 
 // Coklu plaka secimi icin toplu rapor - her plaka icin ayni "ilk/son okuma farki" mantigi
 // tekrarlanir, tek bir istekte hepsi donulur (masaustunun N kere API'ye gitmesi yerine).
 app.MapPost("/api/arac-hareketleri/rapor-toplu", async (RaporTopluRequest request, SeyirMobilDbContext db) =>
     Results.Ok(await HesaplaOzetRaporAsync(request.Plakalar, request.Baslangic, request.Bitis, db)))
-    .WithName("GetAracHareketRaporuToplu");
+    .WithName("GetAracHareketRaporuToplu")
+    .RequireAuthorization();
 
 // Detayli rapor: secilen plaka+tarih araligindaki HER gercek okumayi, bir
 // onceki okumaya gore km farkiyla birlikte donuyor. Interpolasyon YOK -
@@ -316,7 +327,8 @@ app.MapPost("/api/arac-hareketleri/rapor-toplu", async (RaporTopluRequest reques
 // 2026-08-04).
 app.MapPost("/api/arac-hareketleri/rapor-detay", async (RaporTopluRequest request, SeyirMobilDbContext db) =>
     Results.Ok(await HesaplaDetayRaporAsync(request.Plakalar, request.Baslangic, request.Bitis, db)))
-    .WithName("GetAracHareketDetayRaporu");
+    .WithName("GetAracHareketDetayRaporu")
+    .RequireAuthorization();
 
 // Ana liste export'u (2026-08-04) - istemci ekranda o an gosterdigi (filtreli
 // olabilir) satirlari gonderir, backend sadece tek tablolu bir .xlsx uretir.
@@ -339,7 +351,8 @@ app.MapPost("/api/arac-hareketleri/export", (List<AracHareketExportSatiri> satir
     sheet.Columns().AdjustToContents();
     return ExcelDosyasiSonucu(workbook, "arac-hareketleri.xlsx");
 })
-.WithName("ExportAracHareketleri");
+.WithName("ExportAracHareketleri")
+.RequireAuthorization();
 
 // Rapor export'u (2026-08-04) - ozet/detayli VE ayri-plaka-bazli/tumu-birlesik
 // modlarinin 4 kombinasyonunu da uretir. Rapor hesabi ayni
@@ -437,7 +450,8 @@ app.MapPost("/api/arac-hareketleri/rapor-export", async (RaporExportRequest requ
     sheet.Columns().AdjustToContents();
     return ExcelDosyasiSonucu(workbook, "rapor.xlsx");
 })
-.WithName("ExportRapor");
+.WithName("ExportRapor")
+.RequireAuthorization();
 
 // ---------- Auth (login/session/token) ----------
 

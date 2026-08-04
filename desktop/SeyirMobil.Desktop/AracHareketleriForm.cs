@@ -7,6 +7,12 @@ public partial class AracHareketleriForm : Form
 {
     private readonly AracHareketApiClient _apiClient = new();
 
+    // Program.cs'teki login<->ana-ekran dongusune, formun NEDEN kapandigini bildirir: true ise
+    // (Cikis Yap butonu veya oturumun gecersiz olmasi/401) login ekranina geri donulur, false
+    // (varsayilan - kullanici pencereyi X ile kapatti) ise program tamamen sonlanir.
+    public static bool OturumSonlandirildiMi;
+    private bool _oturumSonlandiIsleniyor;
+
     // Ayni anda birden fazla sinir hesaplama istegi cakisirsa (ör. plaka hizli degistirilirse),
     // sadece EN SON baslatilan istegin sonucu UI'a uygulanir - eskisi "surum" uyusmadigi icin
     // sessizce yok sayilir.
@@ -31,6 +37,50 @@ public partial class AracHareketleriForm : Form
         // aciyordu. DoubleBuffered = true, WinForms'ta bu sinif sorunlar icin standart cozum.
         DoubleBuffered = true;
         SetupGridColumns();
+        TokenStore.OturumGecersizOldu += OturumGecersizOldu_Handler;
+    }
+
+    protected override void OnFormClosed(FormClosedEventArgs e)
+    {
+        // Statik bir olaya abone olundugu icin ACIKCA ayrilmazsa, bu form kapandiktan sonra
+        // (ornegin login dongusu yeni bir AracHareketleriForm olusturdugunda) eski, artik
+        // Dispose edilmis forma hala olay gonderilmeye calisilip cokmeye yol acabilirdi.
+        TokenStore.OturumGecersizOldu -= OturumGecersizOldu_Handler;
+        base.OnFormClosed(e);
+    }
+
+    // OturumHandler (baska bir HTTP istegi sirasinda, arka planda) 401 yakaladiginda tetiklenir -
+    // farkli bir thread'den gelebilecegi icin UI thread'ine Invoke ile gecilir.
+    private void OturumGecersizOldu_Handler()
+    {
+        if (IsDisposed || !IsHandleCreated)
+        {
+            return;
+        }
+        Invoke(() =>
+        {
+            if (_oturumSonlandiIsleniyor)
+            {
+                return;
+            }
+            _oturumSonlandiIsleniyor = true;
+            MessageBox.Show(
+                this,
+                "Oturum süresi doldu veya geçersiz. Lütfen tekrar giriş yapın.",
+                "Oturum Sona Erdi",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            OturumSonlandirildiMi = true;
+            Close();
+        });
+    }
+
+    private async void btnCikisYap_Click(object? sender, EventArgs e)
+    {
+        await _apiClient.LogoutAsync();
+        TokenStore.OturumBitir();
+        OturumSonlandirildiMi = true;
+        Close();
     }
 
     private void SetupGridColumns()
