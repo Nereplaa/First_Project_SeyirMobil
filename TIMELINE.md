@@ -105,6 +105,39 @@ görünecek şekilde yeniden yapılandırıldı.
 
 ---
 
+## 2026-08-03 16:56 — İlk Demo ve Yeni Yol Haritası
+
+Bugüne kadar tamamlanan sistem (araç hareketleri listesi, filtreleme, ekleme/silme, çoklu araç
+raporu) Seyir Mobil'den Eren bey'e gösterildi — projenin ilk demosu. Demo sonrası alınan geri
+bildirimler doğrultusunda, sıradaki çalışma sırası netleşti:
+
+1. **Detaylı Rapor** — mevcut rapor ekranına, seçilen tarih aralığında gün gün kilometre artışını
+   gösteren daha ayrıntılı bir mod eklenecek.
+2. **Web uygulaması** — masaüstündeki tüm özellikleri kapsayan, tek sayfalık bir web arayüzü
+   geliştirilecek. Önce temel işlevsellik tamamlanacak, görsel/arayüz geliştirmesi ayrı bir
+   aşamada ele alınacak.
+3. **Arayüz geliştirme** — web altyapısı tamamlandıktan sonra, kurumun önerdiği hazır bileşen
+   kütüphaneleriyle (DevExtreme ve muhtemelen Angular) görsel kalite artırılacak.
+4. **Docker** — sistemin tek bir komutla kurulup çalıştırılabilmesi için konteynerleştirme, en
+   sonda ayrı bir aşamada ele alınacak.
+
+---
+
+## 2026-08-04 — Detaylı Rapor Özelliği Tamamlandı
+
+İlk demoda alınan geri bildirimin ilk maddesi hayata geçirildi: "Araç Hareket Raporu" ekranına
+**"Detaylı Rapor (gün gün)"** seçeneği eklendi. İşaretlendiğinde, seçilen tarih aralığındaki her
+gerçek okuma tek tek listeleniyor ve her satır bir öncekine göre ne kadar kilometre yapıldığını
+gösteriyor — mevcut özet raporun (başlangıç/bitiş/toplam) yanında, daha ayrıntılı bir alternatif
+olarak sunuluyor.
+
+Ayrıca, önceki demoda gündeme gelen iki açık soru netleşti:
+- Web arayüzünün **Angular** ile geliştirileceği doğrulandı.
+- **DevExtreme** (önerilen hazır arayüz bileşen kütüphanesi) ücretsiz olmadığı araştırıldı ve
+  doğrulandı — kurumla lisans konusunun görüşülmesi gerekiyor.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [ ] Web istemcisinin eklenmesi (aynı backend API üzerinden)

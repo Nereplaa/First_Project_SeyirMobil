@@ -24,6 +24,7 @@ partial class AracHareketRaporuForm
     private System.Windows.Forms.FlowLayoutPanel groupBitis;
     private System.Windows.Forms.Label lblBitis;
     private System.Windows.Forms.DateTimePicker dtpBitis;
+    private System.Windows.Forms.CheckBox chkDetayliRapor;
     private System.Windows.Forms.Button btnRaporOlustur;
     private System.Windows.Forms.Button btnGeri;
     private System.Windows.Forms.DataGridView dgvRapor;
@@ -42,6 +43,7 @@ partial class AracHareketRaporuForm
         this.groupBitis = new System.Windows.Forms.FlowLayoutPanel();
         this.lblBitis = new System.Windows.Forms.Label();
         this.dtpBitis = new System.Windows.Forms.DateTimePicker();
+        this.chkDetayliRapor = new System.Windows.Forms.CheckBox();
         this.btnRaporOlustur = new System.Windows.Forms.Button();
         this.btnGeri = new System.Windows.Forms.Button();
         this.dgvRapor = new System.Windows.Forms.DataGridView();
@@ -78,6 +80,7 @@ partial class AracHareketRaporuForm
         this.flowUst.Controls.Add(this.groupPlakalar);
         this.flowUst.Controls.Add(this.groupBaslangic);
         this.flowUst.Controls.Add(this.groupBitis);
+        this.flowUst.Controls.Add(this.chkDetayliRapor);
         this.flowUst.Controls.Add(this.btnRaporOlustur);
         this.flowUst.Controls.Add(this.btnGeri);
         this.flowUst.Name = "flowUst";
@@ -162,13 +165,22 @@ partial class AracHareketRaporuForm
         this.dtpBitis.TabIndex = 0;
         this.dtpBitis.ValueChanged += new System.EventHandler(this.dtpBitis_ValueChanged);
         //
+        // chkDetayliRapor -- isaretlenirse gun gun (her gercek okuma) detay raporu uretilir
+        //
+        this.chkDetayliRapor.AutoSize = true;
+        this.chkDetayliRapor.Margin = new System.Windows.Forms.Padding(3, 29, 20, 3);
+        this.chkDetayliRapor.Name = "chkDetayliRapor";
+        this.chkDetayliRapor.Text = "Detaylı Rapor (gün gün)";
+        this.chkDetayliRapor.UseVisualStyleBackColor = true;
+        this.chkDetayliRapor.TabIndex = 3;
+        //
         // btnRaporOlustur
         //
         this.btnRaporOlustur.Enabled = false;
         this.btnRaporOlustur.Margin = new System.Windows.Forms.Padding(3, 26, 10, 3);
         this.btnRaporOlustur.Name = "btnRaporOlustur";
         this.btnRaporOlustur.Size = new System.Drawing.Size(160, 32);
-        this.btnRaporOlustur.TabIndex = 3;
+        this.btnRaporOlustur.TabIndex = 4;
         this.btnRaporOlustur.Text = "Rapor Oluştur";
         this.btnRaporOlustur.UseVisualStyleBackColor = true;
         this.btnRaporOlustur.Click += new System.EventHandler(this.btnRaporOlustur_Click);
@@ -178,7 +190,7 @@ partial class AracHareketRaporuForm
         this.btnGeri.Margin = new System.Windows.Forms.Padding(3, 26, 3, 3);
         this.btnGeri.Name = "btnGeri";
         this.btnGeri.Size = new System.Drawing.Size(92, 32);
-        this.btnGeri.TabIndex = 4;
+        this.btnGeri.TabIndex = 5;
         this.btnGeri.Text = "← Geri";
         this.btnGeri.UseVisualStyleBackColor = true;
         this.btnGeri.Click += new System.EventHandler(this.btnGeri_Click);

@@ -37,6 +37,15 @@ public class AracHareketApiClient
         return result ?? [];
     }
 
+    public async Task<List<AracHareketDetayRaporSatiriDto>> GetDetayRaporuAsync(List<string> plakalar, DateOnly baslangic, DateOnly bitis)
+    {
+        var request = new RaporTopluRequestDto(plakalar, baslangic, bitis);
+        var response = await _http.PostAsJsonAsync("api/arac-hareketleri/rapor-detay", request);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<List<AracHareketDetayRaporSatiriDto>>();
+        return result ?? [];
+    }
+
     public async Task<AracHareketSinirlarDto> GetSinirlarAsync(string plaka, DateOnly tarih)
     {
         var url = $"api/arac-hareketleri/sinirlar?plaka={Uri.EscapeDataString(plaka)}&tarih={tarih:yyyy-MM-dd}";

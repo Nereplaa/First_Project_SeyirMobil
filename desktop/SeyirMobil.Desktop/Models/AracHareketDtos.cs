@@ -41,3 +41,9 @@ public record AracRaporSonucuDto(
     [property: JsonPropertyName("bitisTarihi")] DateOnly? BitisTarihi,
     [property: JsonPropertyName("bitisKm")] decimal? BitisKm,
     [property: JsonPropertyName("yapilanKm")] decimal? YapilanKm);
+
+public record AracHareketDetayRaporSatiriDto(
+    [property: JsonPropertyName("aracPlaka")] string AracPlaka,
+    [property: JsonPropertyName("veriTarihi")] DateOnly VeriTarihi,
+    [property: JsonPropertyName("kmSayaci")] decimal KmSayaci,
+    [property: JsonPropertyName("artis")] decimal? Artis);

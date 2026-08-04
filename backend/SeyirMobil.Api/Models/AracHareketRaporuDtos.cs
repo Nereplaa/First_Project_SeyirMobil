@@ -12,3 +12,12 @@ public record AracRaporSonucu(
     DateOnly? BitisTarihi,
     decimal? BitisKm,
     decimal? YapilanKm);
+
+// Detayli rapor: secilen araliktaki HER gercek okuma, bir onceki okumaya gore
+// km farkiyla birlikte. Ilk okumanin Artis'i null (ondan onceki bir okuma
+// aralik icinde yok).
+public record AracHareketDetayRaporSatiri(
+    string AracPlaka,
+    DateOnly VeriTarihi,
+    decimal KmSayaci,
+    decimal? Artis);

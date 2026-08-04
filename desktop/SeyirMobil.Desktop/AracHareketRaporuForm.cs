@@ -10,10 +10,11 @@ public partial class AracHareketRaporuForm : Form
     public AracHareketRaporuForm()
     {
         InitializeComponent();
-        SetupGridColumns();
+        ConfigureGridHeaderStyle();
+        SetupOzetGridColumns();
     }
 
-    private void SetupGridColumns()
+    private void ConfigureGridHeaderStyle()
     {
         dgvRapor.ColumnHeadersVisible = true;
         dgvRapor.EnableHeadersVisualStyles = false;
@@ -23,7 +24,13 @@ public partial class AracHareketRaporuForm : Form
         dgvRapor.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
         dgvRapor.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
         dgvRapor.ColumnHeadersHeight = 32;
+    }
 
+    // Ozet mod: her plaka icin tek satir (baslangic/bitis/yapilan km).
+    private void SetupOzetGridColumns()
+    {
+        dgvRapor.DataSource = null;
+        dgvRapor.Columns.Clear();
         dgvRapor.Columns.Add(new DataGridViewTextBoxColumn
         {
             Name = "AracPlaka",
@@ -51,6 +58,41 @@ public partial class AracHareketRaporuForm : Form
             DataPropertyName = "YapilanKm",
             HeaderText = "Yapılan Km",
             Width = 180
+        });
+    }
+
+    // Detay mod: secilen araliktaki HER gercek okuma, bir onceki okumaya gore artisiyla.
+    private void SetupDetayGridColumns()
+    {
+        dgvRapor.DataSource = null;
+        dgvRapor.Columns.Clear();
+        dgvRapor.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "AracPlaka",
+            DataPropertyName = "AracPlaka",
+            HeaderText = "Araç Plakası",
+            Width = 150
+        });
+        dgvRapor.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "VeriTarihi",
+            DataPropertyName = "VeriTarihi",
+            HeaderText = "Veri Tarihi",
+            Width = 150
+        });
+        dgvRapor.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "KmSayaci",
+            DataPropertyName = "KmSayaci",
+            HeaderText = "Km Sayacı",
+            Width = 150
+        });
+        dgvRapor.Columns.Add(new DataGridViewTextBoxColumn
+        {
+            Name = "Artis",
+            DataPropertyName = "Artis",
+            HeaderText = "Bir Önceki Okumaya Göre Artış",
+            Width = 240
         });
     }
 
@@ -128,15 +170,32 @@ public partial class AracHareketRaporuForm : Form
         lblStatus.Text = "Rapor oluşturuluyor...";
         try
         {
-            var sonuclar = await _apiClient.GetRaporTopluAsync(secilenPlakalar, baslangic, bitis);
-            dgvRapor.DataSource = sonuclar.Select(s => new
+            if (chkDetayliRapor.Checked)
             {
-                s.AracPlaka,
-                BaslangicKm = s.BulunduMu ? s.BaslangicKm!.Value.ToString("N2") : "Veri yok",
-                BitisKm = s.BulunduMu ? s.BitisKm!.Value.ToString("N2") : "Veri yok",
-                YapilanKm = s.BulunduMu ? s.YapilanKm!.Value.ToString("N2") : "Veri yok"
-            }).ToList();
-            lblStatus.Text = $"{sonuclar.Count} araç için rapor oluşturuldu.";
+                SetupDetayGridColumns();
+                var satirlar = await _apiClient.GetDetayRaporuAsync(secilenPlakalar, baslangic, bitis);
+                dgvRapor.DataSource = satirlar.Select(s => new
+                {
+                    s.AracPlaka,
+                    VeriTarihi = s.VeriTarihi.ToString("dd.MM.yyyy"),
+                    KmSayaci = s.KmSayaci.ToString("N2"),
+                    Artis = s.Artis.HasValue ? s.Artis.Value.ToString("N2") : "-"
+                }).ToList();
+                lblStatus.Text = $"{satirlar.Count} okuma için detaylı rapor oluşturuldu.";
+            }
+            else
+            {
+                SetupOzetGridColumns();
+                var sonuclar = await _apiClient.GetRaporTopluAsync(secilenPlakalar, baslangic, bitis);
+                dgvRapor.DataSource = sonuclar.Select(s => new
+                {
+                    s.AracPlaka,
+                    BaslangicKm = s.BulunduMu ? s.BaslangicKm!.Value.ToString("N2") : "Veri yok",
+                    BitisKm = s.BulunduMu ? s.BitisKm!.Value.ToString("N2") : "Veri yok",
+                    YapilanKm = s.BulunduMu ? s.YapilanKm!.Value.ToString("N2") : "Veri yok"
+                }).ToList();
+                lblStatus.Text = $"{sonuclar.Count} araç için rapor oluşturuldu.";
+            }
         }
         catch (Exception ex)
         {

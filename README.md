@@ -24,7 +24,7 @@ bir yapıya evrilecek.
              ↑  (HTTP/JSON)
    ┌─────────┼──────────────┐
 Masaüstü    Web (ileride)  (ileride: Mobil)
-(WinForms)  (React/Blazor)
+(WinForms)  (Angular)
 ```
 
 Hiçbir istemci (masaüstü, web, ileride mobil) veritabanına doğrudan bağlanmaz — sadece backend API
@@ -38,7 +38,9 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
 | Backend / API | ASP.NET Core Web API (.NET 10) |
 | ORM | Entity Framework Core |
 | Masaüstü istemci | WinForms (C#) |
-| Web istemci (ileride) | Belirlenmedi |
+| Web istemci (ileride) | Angular (SPA) |
+| UI komponentleri (ileride) | DevExtreme (ticari lisans — kurumla görüşülecek) |
+| Dağıtım (ileride) | Docker (planlanıyor) |
 
 ## Güncel Durum
 
@@ -52,6 +54,10 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
 - ✅ Yeni araç hareketi ekleme (adım adım: plaka → tarih → hız → km sayacı — km sayacı, komşu
   kayıtlara göre tutarlı kalacak şekilde otomatik sınırlanıyor) ve kayıt silme.
 - ✅ Ana ekranda plaka/tarih/hız/km'ye göre filtreleme.
+- ✅ İlk demo Seyir Mobil'e yapıldı, geri bildirim doğrultusunda yol haritası netleşti: sırada
+  detaylı rapor (masaüstü) → web uygulaması (temel altyapı) → arayüz geliştirme → Docker.
+- ✅ Rapor ekranına "Detaylı Rapor (gün gün)" modu eklendi — seçilen tarih aralığındaki her okumanın
+  bir öncekine göre kilometre artışını gösteriyor.
 
 Detaylı ilerleme için bkz. [TIMELINE.md](TIMELINE.md).
 

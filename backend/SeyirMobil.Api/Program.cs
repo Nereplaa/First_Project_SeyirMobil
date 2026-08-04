@@ -256,6 +256,34 @@ app.MapPost("/api/arac-hareketleri/rapor-toplu", async (RaporTopluRequest reques
 })
 .WithName("GetAracHareketRaporuToplu");
 
+// Detayli rapor: secilen plaka+tarih araligindaki HER gercek okumayi, bir
+// onceki okumaya gore km farkiyla birlikte donuyor. Interpolasyon YOK -
+// mevcut veri granularitesi aynen kullaniliyor (kullanici onayli mantik,
+// 2026-08-04).
+app.MapPost("/api/arac-hareketleri/rapor-detay", async (RaporTopluRequest request, SeyirMobilDbContext db) =>
+{
+    var sonuc = new List<AracHareketDetayRaporSatiri>();
+
+    foreach (var plaka in request.Plakalar)
+    {
+        var okumalar = await db.AracHareketleri
+            .Where(h => h.AracPlaka == plaka && h.VeriTarihi >= request.Baslangic && h.VeriTarihi <= request.Bitis)
+            .OrderBy(h => h.VeriTarihi)
+            .ToListAsync();
+
+        decimal? oncekiKm = null;
+        foreach (var okuma in okumalar)
+        {
+            var artis = oncekiKm.HasValue ? okuma.KmSayaci - oncekiKm.Value : (decimal?)null;
+            sonuc.Add(new AracHareketDetayRaporSatiri(plaka, okuma.VeriTarihi, okuma.KmSayaci, artis));
+            oncekiKm = okuma.KmSayaci;
+        }
+    }
+
+    return Results.Ok(sonuc);
+})
+.WithName("GetAracHareketDetayRaporu");
+
 app.Run();
 
 record CreateVehicleRequest(string Plaka, decimal TotalKm);
