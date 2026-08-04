@@ -165,9 +165,24 @@ aynı sonucu üretiyor.
 
 ---
 
+## 2026-08-04 13:20 — Giriş (Login) Sisteminin Temelleri Atıldı
+
+Daha önce kurumla konuşulmuş olan kullanıcı girişi (login), oturum ve yetkilendirme sisteminin
+**backend altyapısı** kuruldu: kullanıcı hesapları (kullanıcı adı, şifre, rol — Admin/Viewer)
+artık veritabanında tutuluyor, şifreler güvenli şekilde şifrelenmiş (hash'lenmiş) olarak
+saklanıyor, girişte güvenli bir oturum anahtarı (token) üretiliyor.
+
+Mevcut ekranlar (araç hareketleri listesi, raporlar) bu aşamada **değişmedi ve kilitlenmedi** —
+masaüstü ve web arayüzü hâlâ olduğu gibi çalışıyor. Giriş ekranlarının kendisi (masaüstünde ve
+web'de) ve mevcut ekranların girişe kilitlenmesi, bir sonraki aşamada ele alınacak.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
 - [x] Sayfalama ve Excel'e aktarma (web + masaüstü)
+- [x] Giriş (login) sistemi — backend altyapısı
+- [ ] Giriş (login) sistemi — masaüstü ve web arayüzü
 - [ ] UI/UX iyileştirmeleri (DevExtreme ile)
 - [ ] Docker ile konteynerleştirme

@@ -1,5 +1,10 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using ClosedXML.Excel;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SeyirMobil.Api.Data;
 using SeyirMobil.Api.Models;
 using SeyirMobil.Api.Validation;
@@ -21,6 +26,30 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
+// Auth altyapisi (2026-08-04): login/session/token sistemi. Mevcut arac-hareketleri/vehicles
+// endpoint'leri BILINCLI olarak kilitlenmiyor - istemciler (desktop/web) login ekranina
+// kavusana kadar oldugu gibi calismaya devam etsinler diye. Sadece /api/auth ve /api/users
+// (kullanici yonetimi) korumali.
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var jwtSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["SecretKey"]!));
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtSection["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwtSection["Audience"],
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = jwtSigningKey,
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(1)
+        };
+    });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -30,6 +59,25 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors(WebClientCorsPolicy);
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Ilk admin kullanicisini seed et (Users tablosu bossa) - boylece login sistemi
+// tazeden kurulan bir veritabaninda da elle SQL yazmadan calisir durumda olur.
+using (var seedScope = app.Services.CreateScope())
+{
+    var seedDb = seedScope.ServiceProvider.GetRequiredService<SeyirMobilDbContext>();
+    if (!await seedDb.Users.AnyAsync())
+    {
+        seedDb.Users.Add(new User
+        {
+            Username = "admin",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+            Role = "Admin"
+        });
+        await seedDb.SaveChangesAsync();
+    }
+}
 
 app.MapGet("/api/vehicles", async (SeyirMobilDbContext db) =>
     await db.Vehicles.OrderBy(v => v.AracId).ToListAsync())
@@ -365,7 +413,114 @@ app.MapPost("/api/arac-hareketleri/rapor-export", async (RaporExportRequest requ
 })
 .WithName("ExportRapor");
 
+// ---------- Auth (login/session/token) ----------
+
+app.MapPost("/api/auth/login", async (LoginRequest request, SeyirMobilDbContext db, IConfiguration config) =>
+{
+    var user = await db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+    if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+    {
+        return Results.Unauthorized();
+    }
+
+    var (token, expiresAt) = JwtOlustur(user, config);
+    return Results.Ok(new LoginResponse(token, expiresAt, user.Username, user.Role));
+})
+.WithName("Login");
+
+app.MapGet("/api/auth/me", (ClaimsPrincipal principal) =>
+    Results.Ok(new
+    {
+        username = principal.Identity?.Name,
+        role = principal.FindFirstValue(ClaimTypes.Role)
+    }))
+.RequireAuthorization()
+.WithName("GetCurrentUser");
+
+// ---------- Kullanici yonetimi (Admin rolu zorunlu - self servis kayit YOK, kasitli) ----------
+
+app.MapGet("/api/users", async (SeyirMobilDbContext db) =>
+    await db.Users
+        .OrderBy(u => u.Username)
+        .Select(u => new UserSummary(u.Id, u.Username, u.Role, u.OlusturmaTarihi))
+        .ToListAsync())
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("GetUsers");
+
+app.MapPost("/api/users", async (CreateUserRequest request, SeyirMobilDbContext db) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Username))
+    {
+        return Results.BadRequest(new { message = "Kullanıcı adı boş olamaz." });
+    }
+    if (request.Password.Length < 6)
+    {
+        return Results.BadRequest(new { message = "Şifre en az 6 karakter olmalı." });
+    }
+    if (request.Role != "Admin" && request.Role != "Viewer")
+    {
+        return Results.BadRequest(new { message = "Rol 'Admin' veya 'Viewer' olmalı." });
+    }
+
+    var kullaniciAdiVarMi = await db.Users.AnyAsync(u => u.Username == request.Username);
+    if (kullaniciAdiVarMi)
+    {
+        return Results.BadRequest(new { message = "Bu kullanıcı adı zaten kayıtlı." });
+    }
+
+    var user = new User
+    {
+        Username = request.Username,
+        PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+        Role = request.Role
+    };
+    db.Users.Add(user);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/users/{user.Id}", new UserSummary(user.Id, user.Username, user.Role, user.OlusturmaTarihi));
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("CreateUser");
+
+app.MapDelete("/api/users/{id:int}", async (int id, SeyirMobilDbContext db) =>
+{
+    var user = await db.Users.FindAsync(id);
+    if (user is null)
+    {
+        return Results.NotFound();
+    }
+    db.Users.Remove(user);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+})
+.RequireAuthorization(policy => policy.RequireRole("Admin"))
+.WithName("DeleteUser");
+
 app.Run();
+
+// ---------- JWT uretimi (login endpoint'i kullanir) ----------
+
+static (string Token, DateTime ExpiresAt) JwtOlustur(User user, IConfiguration config)
+{
+    var jwtSection = config.GetSection("Jwt");
+    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["SecretKey"]!));
+    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+    var expiresAt = DateTime.UtcNow.AddMinutes(double.Parse(jwtSection["ExpiryMinutes"]!));
+
+    var claims = new[]
+    {
+        new Claim(ClaimTypes.Name, user.Username),
+        new Claim(ClaimTypes.Role, user.Role)
+    };
+
+    var token = new JwtSecurityToken(
+        issuer: jwtSection["Issuer"],
+        audience: jwtSection["Audience"],
+        claims: claims,
+        expires: expiresAt,
+        signingCredentials: creds);
+
+    return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+}
 
 // ---------- Rapor hesaplama (rapor-toplu/rapor-detay VE export endpoint'leri ortak kullanir) ----------
 
