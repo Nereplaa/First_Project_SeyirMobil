@@ -25,7 +25,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(istek).pipe(
     catchError((hata) => {
       if (hata.status === 401 && !tokenGerekmiyor) {
+        // Ayni anda birden fazla istek 401 alirsa (ör. sayfa acilisinda paralel cagrilar),
+        // sadece ILK yakalayan uyari gostersin - token zaten temizlenmisse (token() artik null)
+        // digerleri sessizce gecer, tekrar tekrar "oturum sona erdi" penceresi acilmaz.
+        const oturumZatenAcikti = !!auth.token();
         auth.oturumuTemizle();
+        if (oturumZatenAcikti) {
+          alert('Oturum süreniz doldu veya geçersiz. Lütfen tekrar giriş yapın.');
+        }
         router.navigate(['/login']);
       }
       return throwError(() => hata);

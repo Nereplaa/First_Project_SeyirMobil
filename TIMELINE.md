@@ -201,6 +201,45 @@ sadece giriş yapmış kullanıcılara açık.
 
 ---
 
+## 2026-08-04 15:49 — Kurumdan İlk Detaylı Geri Bildirim: Tasarım Aşamasına Geçildi
+
+Seyir Mobil'den Eren bey, güncel sistemi (giriş ekranları dahil) test edip ilk kez detaylı bir geri
+bildirim verdi: işlevsellik ve mimari (masaüstü ve web'in aynı backend'i paylaşması) beğenildi.
+Ana geri bildirim, arayüzün şu an temel HTML bileşenleriyle yapılmış olması ve daha profesyonel,
+hazır bir bileşen kütüphanesiyle (DevExtreme) geliştirilmesi gerektiği yönünde — giriş/tarih
+seçiciler, menü yapısı gibi alanlar özellikle işaret edildi.
+
+Bu geri bildirim doğrultusunda, yeni özellik eklemeye ara verilip **web arayüzünün görsel/UX
+kalitesini artırma aşamasına** geçiliyor.
+
+---
+
+## 2026-08-04 16:02 — DevExtreme Entegrasyonu Başladı: İlk Bileşen Canlıda
+
+Kurumun önerdiği DevExtreme bileşen kütüphanesi projeye eklendi (kayıt gerektirmeyen 30 günlük
+deneme sürümüyle). İlk uygulama: rapor ekranındaki başlangıç/bitiş tarih seçicileri, tek ve daha
+akıcı bir "tarih aralığı" seçiciyle değiştirildi. Geri kalan ekranlar (liste, menü yapısı) aynı
+yaklaşımla adım adım güncellenecek.
+
+---
+
+## 2026-08-04 16:51 — Ana Liste Ekranı Gelişmiş Tabloya Kavuştu
+
+Araç hareketleri listesi artık DevExtreme'in gelişmiş tablo bileşeniyle çalışıyor: sütun
+başlıklarına tıklayarak sıralama, serbest metin arama ve sayfalama artık hazır ve daha akıcı.
+
+---
+
+## 2026-08-04 17:11 — DevExtreme ile Uçtan Uca Arayüz Yenilemesi Tamamlandı
+
+Web uygulamasının tüm ekranları (giriş, araç hareketleri listesi, rapor) kurumun önerdiği
+DevExtreme bileşen kütüphanesiyle yeniden tasarlandı — form alanları, seçiciler, butonlar artık
+tutarlı, profesyonel bir görünüme sahip. Bu süreçte, önceden elle yazılmış bazı özel arayüz
+parçaları (plaka arama/seçim kutusu gibi) tamamen kaldırılıp DevExtreme'in hazır bileşenleriyle
+değiştirildi — kod hem sadeleşti hem de daha tutarlı bir kullanıcı deneyimi sağladı.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
@@ -208,5 +247,6 @@ sadece giriş yapmış kullanıcılara açık.
 - [x] Giriş (login) sistemi — backend altyapısı
 - [x] Oturum zaman aşımı (hareketsizlikte otomatik çıkış)
 - [x] Giriş (login) sistemi — masaüstü ve web arayüzü
-- [ ] UI/UX iyileştirmeleri (DevExtreme ile)
+- [x] UI/UX iyileştirmeleri (DevExtreme ile) — tüm web ekranları güncellendi
+- [ ] Üst menü/sekme yapısının DevExtreme'e taşınması (isteğe bağlı, henüz yapılmadı)
 - [ ] Docker ile konteynerleştirme

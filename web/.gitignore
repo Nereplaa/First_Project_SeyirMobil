@@ -42,3 +42,6 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Kişisel DevExpress hesabına bağlı lisans anahtarı - GitHub'a gitmez
+src/devextreme-license.ts

@@ -1,37 +1,37 @@
 <div class="login-sayfasi">
-  <form class="card login-kart" (ngSubmit)="girisYap()">
+  <div class="card login-kart">
     <h2>Seyir Mobil'e Giriş Yap</h2>
 
     <div class="field">
       <label for="username">Kullanıcı Adı</label>
-      <input
+      <dx-text-box
         id="username"
-        type="text"
-        name="username"
-        autocomplete="username"
-        [ngModel]="username()"
-        (ngModelChange)="username.set($event)"
-      />
+        [value]="username()"
+        (onValueChanged)="username.set($event.value ?? '')"
+        (onEnterKey)="girisYap()"
+      ></dx-text-box>
     </div>
 
     <div class="field">
       <label for="password">Şifre</label>
-      <input
+      <dx-text-box
         id="password"
-        type="password"
-        name="password"
-        autocomplete="current-password"
-        [ngModel]="password()"
-        (ngModelChange)="password.set($event)"
-      />
+        mode="password"
+        [value]="password()"
+        (onValueChanged)="password.set($event.value ?? '')"
+        (onEnterKey)="girisYap()"
+      ></dx-text-box>
     </div>
 
     @if (hataMesaji()) {
       <p class="error-text">{{ hataMesaji() }}</p>
     }
 
-    <button type="submit" class="primary" [disabled]="girisYapiliyor()">
-      {{ girisYapiliyor() ? 'Giriş yapılıyor...' : 'Giriş Yap' }}
-    </button>
-  </form>
+    <dx-button
+      [text]="girisYapiliyor() ? 'Giriş yapılıyor...' : 'Giriş Yap'"
+      type="default"
+      [disabled]="girisYapiliyor()"
+      (onClick)="girisYap()"
+    ></dx-button>
+  </div>
 </div>

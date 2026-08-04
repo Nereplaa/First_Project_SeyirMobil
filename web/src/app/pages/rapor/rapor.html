@@ -3,79 +3,76 @@
 
   <div class="field-row">
     <div class="field">
-      <label for="plakaLookup">Araçlar (birden fazla seçebilirsiniz)</label>
-      <div class="lookup">
-        <input
-          id="plakaLookup"
-          type="text"
-          placeholder="Plaka ara..."
-          [(ngModel)]="plakaArama"
-          (focus)="lookupAc()"
-          (blur)="lookupKapat()"
-          autocomplete="off"
-          style="width: 220px"
-        />
-        @if (lookupAcik()) {
-          <ul class="lookup-liste">
-            @for (p of lookupSonuclari(); track p.aracId) {
-              <li (mousedown)="plakaSec(p.aracPlaka)">{{ p.aracPlaka }}</li>
-            } @empty {
-              <li class="lookup-bos">Eşleşen araç yok</li>
-            }
-          </ul>
-        }
-      </div>
-
-      @if (seciliPlakalar().length > 0) {
-        <div class="chip-listesi">
-          @for (plaka of seciliPlakalar(); track plaka) {
-            <span class="chip">
-              {{ plaka }}
-              <button type="button" class="chip-kaldir" (click)="plakaKaldir(plaka)" aria-label="Kaldır">×</button>
-            </span>
-          }
-        </div>
-      }
+      <label for="plakaSecim">Araçlar (birden fazla seçebilirsiniz)</label>
+      <dx-tag-box
+        id="plakaSecim"
+        [dataSource]="plakalar()"
+        displayExpr="aracPlaka"
+        valueExpr="aracPlaka"
+        placeholder="Plaka ara..."
+        [searchEnabled]="true"
+        [showSelectionControls]="true"
+        [value]="seciliPlakalar()"
+        (onValueChanged)="seciliPlakalarDegisti($event)"
+        width="260"
+      ></dx-tag-box>
     </div>
 
     <div class="field">
-      <label for="baslangic">Başlangıç Tarihi</label>
-      <input id="baslangic" type="date" [(ngModel)]="baslangic" (change)="onBaslangicDegisti()" />
-    </div>
-
-    <div class="field">
-      <label for="bitis">Bitiş Tarihi</label>
-      <input id="bitis" type="date" [(ngModel)]="bitis" [min]="baslangic" />
+      <label for="tarihAraligi">Tarih Aralığı</label>
+      <dx-date-range-box
+        id="tarihAraligi"
+        [startDate]="baslangicDate"
+        (startDateChange)="baslangicDateDegisti($event)"
+        [endDate]="bitisDate"
+        (endDateChange)="bitisDateDegisti($event)"
+        startDateLabel="Başlangıç"
+        endDateLabel="Bitiş"
+        displayFormat="dd.MM.yyyy"
+        [showClearButton]="false"
+        width="260"
+      ></dx-date-range-box>
     </div>
 
     <div class="field">
       <label>&nbsp;</label>
       <label class="toggle-detayli">
-        <input type="checkbox" [(ngModel)]="detayliRapor" />
+        <dx-check-box [value]="detayliRapor" (onValueChanged)="detayliRapor = !!$event.value"></dx-check-box>
         <span>Detaylı Rapor (gün gün)</span>
       </label>
     </div>
 
     <div class="field">
       <label>&nbsp;</label>
-      <button class="primary" (click)="raporOlustur()" [disabled]="!raporOlusturEtkin() || yukleniyor()">
-        {{ yukleniyor() ? 'Oluşturuluyor…' : 'Rapor Oluştur' }}
-      </button>
+      <dx-button
+        [text]="yukleniyor() ? 'Oluşturuluyor…' : 'Rapor Oluştur'"
+        type="default"
+        [disabled]="!raporOlusturEtkin() || yukleniyor()"
+        (onClick)="raporOlustur()"
+      ></dx-button>
     </div>
 
     <div class="field">
       <label for="exportModu">Excel Yapısı</label>
-      <select id="exportModu" [(ngModel)]="exportModu">
-        <option value="ayri">Her plaka için ayrı bölüm</option>
-        <option value="tumu">Tüm plakalar tek tabloda</option>
-      </select>
+      <dx-select-box
+        id="exportModu"
+        [dataSource]="exportModuSecenekleri"
+        displayExpr="metin"
+        valueExpr="deger"
+        [value]="exportModu"
+        (onValueChanged)="exportModu = $event.value"
+        width="220"
+      ></dx-select-box>
     </div>
 
     <div class="field">
       <label>&nbsp;</label>
-      <button (click)="excelAktar()" [disabled]="!raporOlusturEtkin() || disaAktariliyor()">
-        {{ disaAktariliyor() ? 'Aktarılıyor…' : 'Excel\'e Aktar' }}
-      </button>
+      <dx-button
+        [text]="disaAktariliyor() ? 'Aktarılıyor…' : 'Excel\'e Aktar'"
+        type="normal"
+        [disabled]="!raporOlusturEtkin() || disaAktariliyor()"
+        (onClick)="excelAktar()"
+      ></dx-button>
     </div>
   </div>
 

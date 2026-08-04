@@ -1,5 +1,12 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import {
+  DxDataGridModule,
+  DxSelectBoxModule,
+  DxDateBoxModule,
+  DxNumberBoxModule,
+  DxCheckBoxModule,
+  DxButtonModule,
+} from 'devextreme-angular';
 import { AracHareketApi } from '../../services/arac-hareket-api';
 import {
   AracHareketDto,
@@ -7,6 +14,7 @@ import {
   AracHareketSinirlarDto,
 } from '../../models/arac-hareket.models';
 import { dosyaIndir } from '../../utils/dosya-indir';
+import { oturumHatasiMi } from '../../utils/hata-yardimcisi';
 
 const FILTRE_TUMU = 'Tümü';
 
@@ -16,9 +24,31 @@ function bugunIso(): string {
   return yerelGun.toISOString().slice(0, 10);
 }
 
+// DevExtreme tarih bilesenleri (dx-date-box) Date nesneleriyle calisiyor, backend/filtre
+// mantigi ise ISO tarih string'i ("yyyy-MM-dd") bekliyor - donusum burada yapiliyor.
+// getFullYear/getMonth/getDate KULLANILIYOR (toISOString DEGIL) - toISOString once UTC'ye
+// cevirir, yerel saat diliminde gece yarisina yakin secimlerde bir gun kayabilirdi.
+function tarihToIso(d: Date): string {
+  const y = d.getFullYear();
+  const ay = String(d.getMonth() + 1).padStart(2, '0');
+  const gun = String(d.getDate()).padStart(2, '0');
+  return `${y}-${ay}-${gun}`;
+}
+
+function isoToTarih(iso: string): Date {
+  return new Date(iso + 'T00:00:00');
+}
+
 @Component({
   selector: 'app-liste',
-  imports: [FormsModule],
+  imports: [
+    DxDataGridModule,
+    DxSelectBoxModule,
+    DxDateBoxModule,
+    DxNumberBoxModule,
+    DxCheckBoxModule,
+    DxButtonModule,
+  ],
   templateUrl: './liste.html',
   styleUrl: './liste.css',
 })
@@ -32,30 +62,45 @@ export class Liste implements OnInit {
   statusText = signal('');
   disaAktariliyor = signal(false);
 
-  // ---------- Sayfalama (filtrelenmiş/gösterilen liste üzerinde, yerelde) ----------
+  // ---------- DevExtreme DataGrid ----------
+  // Sayfalama/siralama/arama artik dx-data-grid'in KENDI ic mekanizmasi tarafindan
+  // yonetiliyor - elle yazilmis sayfa/slice mantigina gerek kalmadi. gosterilenHareketler()
+  // (filtreli TAM liste) dogrudan dataSource olarak veriliyor, grid sadece GORUNUMU sayfaliyor.
   readonly sayfaBoyutuSecenekleri = [10, 25, 50, 100];
-  sayfaBoyutu = signal(25);
-  suankiSayfa = signal(1);
-  toplamSayfa = computed(() => Math.max(1, Math.ceil(this.gosterilenHareketler().length / this.sayfaBoyutu())));
-  sayfalanmisHareketler = computed(() => {
-    const baslangic = (this.suankiSayfa() - 1) * this.sayfaBoyutu();
-    return this.gosterilenHareketler().slice(baslangic, baslangic + this.sayfaBoyutu());
-  });
+  readonly ilkSayfaBoyutu = 25;
+
+  readonly dataGridColumns = [
+    { dataField: 'aracId', caption: 'Araç ID', width: 90, alignment: 'left' as const },
+    { dataField: 'aracPlaka', caption: 'Araç Plaka', width: 150 },
+    {
+      dataField: 'veriTarihi',
+      caption: 'Veri Tarihi',
+      width: 130,
+      calculateSortValue: 'veriTarihi',
+      customizeText: (cellInfo: { value?: string }) => (cellInfo.value ? this.formatTarih(cellInfo.value) : ''),
+    },
+    { dataField: 'hiz', caption: 'Hız', width: 90, alignment: 'left' as const },
+    { dataField: 'kmSayaci', caption: 'Km Sayacı', format: '#,##0.00' },
+  ];
+
+  onSelectionChanged(event: { selectedRowsData: AracHareketDto[] }): void {
+    this.seciliHareket.set(event.selectedRowsData[0] ?? null);
+  }
 
   // ---------- Filtre şeridi ----------
   readonly filtreTumu = FILTRE_TUMU;
   filtrePlakaListesi = signal<string[]>([FILTRE_TUMU]);
   filtrePlaka = FILTRE_TUMU;
   filtreTarihAktif = false;
-  filtreTarih = bugunIso();
-  filtreHiz = '';
-  filtreKm = '';
+  filtreTarihDate: Date = isoToTarih(bugunIso());
+  filtreHiz: number | null = null;
+  filtreKm: number | null = null;
   filtreHatasi = signal('');
 
   // ---------- Ekleme sihirbazı ----------
   plakalar = signal<AracPlakaLookupDto[]>([]);
   wizardAracId: number | null = null;
-  wizardTarih = bugunIso();
+  wizardTarihDate: Date = isoToTarih(bugunIso());
   tarihOnaylandi = signal(false);
   sinirlarHesaplaniyor = signal(false);
   sinirBilgisi = signal('');
@@ -81,19 +126,17 @@ export class Liste implements OnInit {
       next: (hareketler) => {
         this.tumHareketler.set(hareketler);
         this.gosterilenHareketler.set(hareketler);
-        this.suankiSayfa.set(1);
         this.filtrePlakaListesiniDoldur(hareketler);
         this.statusText.set(`${hareketler.length} hareket kaydı yüklendi.`);
       },
       error: (err) => {
+        if (oturumHatasiMi(err)) {
+          return;
+        }
         this.statusText.set('Veri yüklenemedi.');
         alert(`Araç hareketleri alınamadı. Backend API çalışıyor mu?\n\nHata: ${err.message}`);
       },
     });
-  }
-
-  satirSec(h: AracHareketDto): void {
-    this.seciliHareket.set(h);
   }
 
   sil(): void {
@@ -115,6 +158,9 @@ export class Liste implements OnInit {
         this.refreshGrid();
       },
       error: (err) => {
+        if (oturumHatasiMi(err)) {
+          return;
+        }
         this.statusText.set('Silme başarısız.');
         alert(`Kayıt silinemedi.\n\nHata: ${err.message}`);
       },
@@ -126,15 +172,32 @@ export class Liste implements OnInit {
   private plakalarYukle(): void {
     this.api.getPlakalar().subscribe({
       next: (plakalar) => this.plakalar.set(plakalar),
-      error: (err) => alert(`Plaka listesi alınamadı.\n\nHata: ${err.message}`),
+      error: (err) => {
+        if (!oturumHatasiMi(err)) {
+          alert(`Plaka listesi alınamadı.\n\nHata: ${err.message}`);
+        }
+      },
     });
+  }
+
+  wizardPlakaDegisti(event: { value?: number | null }): void {
+    this.wizardAracId = event.value ?? null;
+    this.onPlakaSecildi();
   }
 
   onPlakaSecildi(): void {
     this.sonrakiAdimlariSifirla();
     if (this.wizardAracId != null) {
-      this.wizardTarih = bugunIso();
+      this.wizardTarihDate = isoToTarih(bugunIso());
     }
+  }
+
+  wizardTarihDegisti(event: { value?: Date | null }): void {
+    if (!event.value) {
+      return;
+    }
+    this.wizardTarihDate = event.value;
+    this.onTarihDegisti();
   }
 
   onTarihDegisti(): void {
@@ -166,7 +229,7 @@ export class Liste implements OnInit {
     this.sinirlarHesaplaniyor.set(true);
     this.statusText.set('Sınırlar hesaplanıyor...');
 
-    this.api.getSinirlar(plaka, this.wizardTarih).subscribe({
+    this.api.getSinirlar(plaka, tarihToIso(this.wizardTarihDate)).subscribe({
       next: (sinirlar: AracHareketSinirlarDto) => {
         if (buSurum !== this.sinirSorgusuSurumu) {
           return;
@@ -206,7 +269,7 @@ export class Liste implements OnInit {
         this.statusText.set('Hız ve km sayacını girip Ekle\'ye basabilirsin.');
       },
       error: (err) => {
-        if (buSurum !== this.sinirSorgusuSurumu) {
+        if (buSurum !== this.sinirSorgusuSurumu || oturumHatasiMi(err)) {
           return;
         }
         this.sinirlarHesaplaniyor.set(false);
@@ -232,7 +295,7 @@ export class Liste implements OnInit {
       .createHareket({
         aracId: arac.aracId,
         aracPlaka: arac.aracPlaka,
-        veriTarihi: this.wizardTarih,
+        veriTarihi: tarihToIso(this.wizardTarihDate),
         hiz: this.wizardHiz,
         kmSayaci: this.wizardKm,
       })
@@ -245,9 +308,12 @@ export class Liste implements OnInit {
           this.refreshGrid();
         },
         error: (err) => {
+          this.ekleniyor.set(false);
+          if (oturumHatasiMi(err)) {
+            return;
+          }
           this.statusText.set('Ekleme başarısız.');
           alert(`Kayıt eklenemedi.\n\nHata: ${err.message}`);
-          this.ekleniyor.set(false);
         },
       });
   }
@@ -268,59 +334,31 @@ export class Liste implements OnInit {
     }
 
     if (this.filtreTarihAktif) {
-      sonuc = sonuc.filter((h) => h.veriTarihi === this.filtreTarih);
+      const filtreTarihIso = tarihToIso(this.filtreTarihDate);
+      sonuc = sonuc.filter((h) => h.veriTarihi === filtreTarihIso);
     }
 
-    if (this.filtreHiz.trim() !== '') {
-      const hiz = Number(this.filtreHiz.trim());
-      if (!Number.isInteger(hiz)) {
-        this.filtreHatasi.set('Hız filtresi geçerli bir tam sayı olmalı.');
-        return;
-      }
-      sonuc = sonuc.filter((h) => h.hiz === hiz);
+    if (this.filtreHiz != null) {
+      sonuc = sonuc.filter((h) => h.hiz === this.filtreHiz);
     }
 
-    if (this.filtreKm.trim() !== '') {
-      const km = Number(this.filtreKm.trim());
-      if (Number.isNaN(km)) {
-        this.filtreHatasi.set('Km sayacı filtresi geçerli bir sayı olmalı.');
-        return;
-      }
-      sonuc = sonuc.filter((h) => h.kmSayaci === km);
+    if (this.filtreKm != null) {
+      sonuc = sonuc.filter((h) => h.kmSayaci === this.filtreKm);
     }
 
     this.gosterilenHareketler.set(sonuc);
-    this.suankiSayfa.set(1);
     this.statusText.set(`${sonuc.length} / ${this.tumHareketler().length} kayıt gösteriliyor (filtreli).`);
   }
 
   filtreleTemizle(): void {
     this.filtrePlaka = FILTRE_TUMU;
     this.filtreTarihAktif = false;
-    this.filtreHiz = '';
-    this.filtreKm = '';
+    this.filtreTarihDate = isoToTarih(bugunIso());
+    this.filtreHiz = null;
+    this.filtreKm = null;
     this.filtreHatasi.set('');
     this.gosterilenHareketler.set(this.tumHareketler());
-    this.suankiSayfa.set(1);
     this.statusText.set(`${this.tumHareketler().length} hareket kaydı yüklendi.`);
-  }
-
-  // ---------- Sayfalama ----------
-
-  sayfaBoyutuDegisti(): void {
-    this.suankiSayfa.set(1);
-  }
-
-  oncekiSayfa(): void {
-    if (this.suankiSayfa() > 1) {
-      this.suankiSayfa.update((s) => s - 1);
-    }
-  }
-
-  sonrakiSayfa(): void {
-    if (this.suankiSayfa() < this.toplamSayfa()) {
-      this.suankiSayfa.update((s) => s + 1);
-    }
   }
 
   // ---------- Excel'e Aktar ----------
@@ -339,6 +377,9 @@ export class Liste implements OnInit {
       },
       error: (err) => {
         this.disaAktariliyor.set(false);
+        if (oturumHatasiMi(err)) {
+          return;
+        }
         alert(`Excel'e aktarılamadı.\n\nHata: ${err.message}`);
       },
     });

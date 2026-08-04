@@ -166,6 +166,10 @@ public partial class AracHareketleriForm : Form
         }
         catch (Exception ex)
         {
+            if (HataYardimcisi.OturumSuresiDolduMu(ex))
+            {
+                return;
+            }
             lblStatus.Text = "Veri yüklenemedi.";
             MessageBox.Show(
                 $"Araç hareketleri alınamadı. Backend API çalışıyor mu?\n\nHata: {ex.Message}",
@@ -265,6 +269,10 @@ public partial class AracHareketleriForm : Form
         }
         catch (Exception ex)
         {
+            if (HataYardimcisi.OturumSuresiDolduMu(ex))
+            {
+                return;
+            }
             lblStatus.Text = "Excel'e aktarılamadı.";
             MessageBox.Show($"Excel'e aktarılamadı.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -307,6 +315,10 @@ public partial class AracHareketleriForm : Form
         }
         catch (Exception ex)
         {
+            if (HataYardimcisi.OturumSuresiDolduMu(ex))
+            {
+                return;
+            }
             lblStatus.Text = "Silme başarısız.";
             MessageBox.Show($"Kayıt silinemedi.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -337,6 +349,10 @@ public partial class AracHareketleriForm : Form
         }
         catch (Exception ex)
         {
+            if (HataYardimcisi.OturumSuresiDolduMu(ex))
+            {
+                return;
+            }
             MessageBox.Show($"Plaka listesi alınamadı.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -448,7 +464,7 @@ public partial class AracHareketleriForm : Form
         }
         catch (Exception ex)
         {
-            if (buSurum != _sinirSorgusuSurumu)
+            if (buSurum != _sinirSorgusuSurumu || HataYardimcisi.OturumSuresiDolduMu(ex))
             {
                 return;
             }
@@ -485,6 +501,10 @@ public partial class AracHareketleriForm : Form
         }
         catch (Exception ex)
         {
+            if (HataYardimcisi.OturumSuresiDolduMu(ex))
+            {
+                return;
+            }
             lblStatus.Text = "Ekleme başarısız.";
             MessageBox.Show($"Kayıt eklenemedi.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
             btnEkle.Enabled = true;

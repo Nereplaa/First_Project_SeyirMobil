@@ -111,6 +111,10 @@ public partial class AracHareketRaporuForm : Form
         }
         catch (Exception ex)
         {
+            if (HataYardimcisi.OturumSuresiDolduMu(ex))
+            {
+                return;
+            }
             lblStatus.Text = "Araç listesi yüklenemedi.";
             MessageBox.Show(
                 $"Araç listesi alınamadı. Backend API çalışıyor mu?\n\nHata: {ex.Message}",
@@ -199,6 +203,10 @@ public partial class AracHareketRaporuForm : Form
         }
         catch (Exception ex)
         {
+            if (HataYardimcisi.OturumSuresiDolduMu(ex))
+            {
+                return;
+            }
             lblStatus.Text = "Rapor oluşturulamadı.";
             MessageBox.Show(
                 $"Rapor oluşturulamadı.\n\nHata: {ex.Message}",
@@ -249,6 +257,10 @@ public partial class AracHareketRaporuForm : Form
         }
         catch (Exception ex)
         {
+            if (HataYardimcisi.OturumSuresiDolduMu(ex))
+            {
+                return;
+            }
             lblStatus.Text = "Excel'e aktarılamadı.";
             MessageBox.Show($"Excel'e aktarılamadı.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }

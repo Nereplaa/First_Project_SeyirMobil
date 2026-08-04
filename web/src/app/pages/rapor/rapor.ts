@@ -1,5 +1,11 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import {
+  DxDateRangeBoxModule,
+  DxTagBoxModule,
+  DxCheckBoxModule,
+  DxSelectBoxModule,
+  DxButtonModule,
+} from 'devextreme-angular';
 import { AracHareketApi } from '../../services/arac-hareket-api';
 import {
   AracPlakaLookupDto,
@@ -7,6 +13,7 @@ import {
   AracHareketDetayRaporSatiriDto,
 } from '../../models/arac-hareket.models';
 import { dosyaIndir } from '../../utils/dosya-indir';
+import { oturumHatasiMi } from '../../utils/hata-yardimcisi';
 
 function bugunIso(): string {
   const d = new Date();
@@ -20,9 +27,24 @@ function yarinIso(iso: string): string {
   return d.toISOString().slice(0, 10);
 }
 
+// DevExtreme DateRangeBox Date nesneleriyle calisiyor, backend/rapor mantigi ise ISO tarih
+// string'i ("yyyy-MM-dd") bekliyor - bu iki yardimci fonksiyon aradaki donusumu yapiyor.
+// getFullYear/getMonth/getDate KULLANILIYOR (toISOString DEGIL) - toISOString once UTC'ye
+// cevirir, yerel saat diliminde gece yarisina yakin secimlerde bir gun kayabilirdi.
+function tarihToIso(d: Date): string {
+  const y = d.getFullYear();
+  const ay = String(d.getMonth() + 1).padStart(2, '0');
+  const gun = String(d.getDate()).padStart(2, '0');
+  return `${y}-${ay}-${gun}`;
+}
+
+function isoToTarih(iso: string): Date {
+  return new Date(iso + 'T00:00:00');
+}
+
 @Component({
   selector: 'app-rapor',
-  imports: [FormsModule],
+  imports: [DxDateRangeBoxModule, DxTagBoxModule, DxCheckBoxModule, DxSelectBoxModule, DxButtonModule],
   templateUrl: './rapor.html',
   styleUrl: './rapor.css',
 })
@@ -30,23 +52,48 @@ export class Rapor implements OnInit {
   private readonly api = inject(AracHareketApi);
 
   plakalar = signal<AracPlakaLookupDto[]>([]);
+  // Plaka secimi artik dx-tag-box'in KENDI arama+cip mekanizmasi ile yapiliyor - onceki elle
+  // yazilmis arama kutusu/acilir liste/cip listesi (plakaArama, lookupAcik, lookupSonuclari,
+  // lookupAc/Kapat, plakaSec/Kaldir) tamamen kaldirildi, DevExtreme zaten ayni ozelligi
+  // (aranabilir coklu-secim + kaldirilabilir cipler) hazir sunuyor.
   seciliPlakalar = signal<string[]>([]);
 
-  // ---------- Plaka lookup (arama kutusu + açılır öneri listesi) ----------
-  plakaArama = signal('');
-  lookupAcik = signal(false);
-
-  lookupSonuclari = computed(() => {
-    const secili = new Set(this.seciliPlakalar());
-    const arama = this.plakaArama().trim().toLocaleUpperCase('tr-TR');
-    return this.plakalar()
-      .filter((p) => !secili.has(p.aracPlaka))
-      .filter((p) => arama === '' || p.aracPlaka.toLocaleUpperCase('tr-TR').includes(arama));
-  });
+  seciliPlakalarDegisti(event: { value?: string[] | null }): void {
+    this.seciliPlakalar.set(event.value ?? []);
+  }
 
   baslangic = bugunIso();
   bitis = yarinIso(bugunIso());
   detayliRapor = false;
+
+  // dx-date-range-box'a baglanan Date alanlari - asil "kaynak" hala baslangic/bitis (ISO
+  // string) alanlari, rapor mantigi/export/backend cagrilari hepsi bu string'leri kullaniyor.
+  // BILINCLI OLARAK getter/setter DEGIL, sabit alan: bir getter her change-detection turunda
+  // "new Date(...)" ile YENI bir nesne dondurseydi, DevExtreme bunu "deger degisti" sanip
+  // widget'i surekli yeniden baslatiyordu (gercek bug, ekranda ust uste yigilan onlarca takvim
+  // olarak ortaya cikti) - sabit alan + degisiklikleri SADECE kullanici etkilesiminde (event
+  // handler'larda) guncelleme, referans kararliligini koruyor.
+  baslangicDate: Date = isoToTarih(this.baslangic);
+  bitisDate: Date = isoToTarih(this.bitis);
+
+  baslangicDateDegisti(deger: string | number | Date | null): void {
+    if (deger == null) {
+      return;
+    }
+    const tarih = new Date(deger);
+    this.baslangicDate = tarih;
+    this.baslangic = tarihToIso(tarih);
+    this.onBaslangicDegisti();
+  }
+
+  bitisDateDegisti(deger: string | number | Date | null): void {
+    if (deger == null) {
+      return;
+    }
+    const tarih = new Date(deger);
+    this.bitisDate = tarih;
+    this.bitis = tarihToIso(tarih);
+  }
 
   ozetSonuclar = signal<AracRaporSonucuDto[]>([]);
   detaySonuclar = signal<AracHareketDetayRaporSatiriDto[]>([]);
@@ -55,6 +102,10 @@ export class Rapor implements OnInit {
   statusText = signal('');
 
   // ---------- Excel'e Aktar ----------
+  readonly exportModuSecenekleri = [
+    { deger: 'ayri' as const, metin: 'Her plaka için ayrı bölüm' },
+    { deger: 'tumu' as const, metin: 'Tüm plakalar tek tabloda' },
+  ];
   exportModu: 'ayri' | 'tumu' = 'ayri';
   disaAktariliyor = signal(false);
 
@@ -63,7 +114,11 @@ export class Rapor implements OnInit {
   ngOnInit(): void {
     this.api.getPlakalar().subscribe({
       next: (plakalar) => this.plakalar.set(plakalar),
-      error: (err) => alert(`Araç listesi alınamadı.\n\nHata: ${err.message}`),
+      error: (err) => {
+        if (!oturumHatasiMi(err)) {
+          alert(`Araç listesi alınamadı.\n\nHata: ${err.message}`);
+        }
+      },
     });
   }
 
@@ -71,28 +126,8 @@ export class Rapor implements OnInit {
     const minBitis = yarinIso(this.baslangic);
     if (this.bitis < minBitis) {
       this.bitis = minBitis;
+      this.bitisDate = isoToTarih(this.bitis);
     }
-  }
-
-  lookupAc(): void {
-    this.lookupAcik.set(true);
-  }
-
-  lookupKapat(): void {
-    // Bir liste öğesine tıklanırken de blur tetiklenir - tıklamanın (mousedown) önce
-    // işlenebilmesi için kapatmayı bir sonraki event döngüsüne erteliyoruz.
-    setTimeout(() => this.lookupAcik.set(false), 150);
-  }
-
-  plakaSec(plaka: string): void {
-    if (!this.seciliPlakalar().includes(plaka)) {
-      this.seciliPlakalar.set([...this.seciliPlakalar(), plaka]);
-    }
-    this.plakaArama.set('');
-  }
-
-  plakaKaldir(plaka: string): void {
-    this.seciliPlakalar.set(this.seciliPlakalar().filter((p) => p !== plaka));
   }
 
   raporOlustur(): void {
@@ -130,6 +165,9 @@ export class Rapor implements OnInit {
 
   private raporHatasi(err: any): void {
     this.yukleniyor.set(false);
+    if (oturumHatasiMi(err)) {
+      return;
+    }
     this.statusText.set('Rapor oluşturulamadı.');
     alert(`Rapor oluşturulamadı.\n\nHata: ${err.message}`);
   }
@@ -157,6 +195,9 @@ export class Rapor implements OnInit {
         },
         error: (err) => {
           this.disaAktariliyor.set(false);
+          if (oturumHatasiMi(err)) {
+            return;
+          }
           this.statusText.set('Excel\'e aktarılamadı.');
           alert(`Excel'e aktarılamadı.\n\nHata: ${err.message}`);
         },

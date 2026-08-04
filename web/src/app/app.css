@@ -46,14 +46,23 @@
   font-size: 0.85rem;
 }
 
-.kullanici-bilgisi button {
+/* "Çıkış Yap" artık dx-button (native <button> DEĞİL) - DevExtreme'in kendi ic DOM'una
+   (dx-button-text vb.) ulaşmak için ::ng-deep gerekiyor, aksi halde koyu header üzerinde
+   bileşenin varsayılan koyu metin rengiyle okunaksız kalıyor. */
+.kullanici-bilgisi ::ng-deep .dx-button {
   background: transparent;
   border-color: #4b5563;
+}
+
+.kullanici-bilgisi ::ng-deep .dx-button-content .dx-button-text {
   color: #d1d5db;
 }
 
-.kullanici-bilgisi button:hover {
+.kullanici-bilgisi ::ng-deep .dx-button:hover {
   background: #374151;
+}
+
+.kullanici-bilgisi ::ng-deep .dx-button:hover .dx-button-content .dx-button-text {
   color: #fff;
 }
 

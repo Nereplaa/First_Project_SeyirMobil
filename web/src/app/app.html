@@ -7,7 +7,7 @@
     </nav>
     <div class="kullanici-bilgisi">
       <span>{{ auth.username() }} ({{ auth.role() }})</span>
-      <button type="button" (click)="cikisYap()">Çıkış Yap</button>
+      <dx-button text="Çıkış Yap" stylingMode="outlined" (onClick)="cikisYap()"></dx-button>
     </div>
   }
 </header>

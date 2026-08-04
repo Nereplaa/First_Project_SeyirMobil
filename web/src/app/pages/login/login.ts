@@ -1,11 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { DxTextBoxModule, DxButtonModule } from 'devextreme-angular';
 import { Auth } from '../../services/auth';
 
 @Component({
   selector: 'app-login',
-  imports: [FormsModule],
+  imports: [DxTextBoxModule, DxButtonModule],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
