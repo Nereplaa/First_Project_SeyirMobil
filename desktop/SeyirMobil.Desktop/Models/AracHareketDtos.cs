@@ -47,3 +47,10 @@ public record AracHareketDetayRaporSatiriDto(
     [property: JsonPropertyName("veriTarihi")] DateOnly VeriTarihi,
     [property: JsonPropertyName("kmSayaci")] decimal KmSayaci,
     [property: JsonPropertyName("artis")] decimal? Artis);
+
+public record RaporExportRequestDto(
+    [property: JsonPropertyName("plakalar")] List<string> Plakalar,
+    [property: JsonPropertyName("baslangic")] DateOnly Baslangic,
+    [property: JsonPropertyName("bitis")] DateOnly Bitis,
+    [property: JsonPropertyName("detayliMi")] bool DetayliMi,
+    [property: JsonPropertyName("ayriPlakaBazliMi")] bool AyriPlakaBazliMi);

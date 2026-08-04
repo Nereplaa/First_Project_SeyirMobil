@@ -38,6 +38,7 @@ partial class AracHareketleriForm
     private System.Windows.Forms.Button btnSil;
     private System.Windows.Forms.Button btnYenile;
     private System.Windows.Forms.Button btnHareketRaporu;
+    private System.Windows.Forms.Button btnExcelAktar;
 
     private System.Windows.Forms.FlowLayoutPanel flowFiltre;
     private System.Windows.Forms.Label lblFiltreBaslik;
@@ -52,6 +53,14 @@ partial class AracHareketleriForm
     private System.Windows.Forms.Button btnFiltreTemizle;
 
     private System.Windows.Forms.DataGridView dgvHareketler;
+
+    private System.Windows.Forms.FlowLayoutPanel flowSayfalama;
+    private System.Windows.Forms.Label lblSayfaBoyutu;
+    private System.Windows.Forms.ComboBox cmbSayfaBoyutu;
+    private System.Windows.Forms.Button btnOncekiSayfa;
+    private System.Windows.Forms.Label lblSayfaGostergesi;
+    private System.Windows.Forms.Button btnSonrakiSayfa;
+
     private System.Windows.Forms.Label lblStatus;
 
     private void InitializeComponent()
@@ -76,6 +85,7 @@ partial class AracHareketleriForm
         this.btnSil = new System.Windows.Forms.Button();
         this.btnYenile = new System.Windows.Forms.Button();
         this.btnHareketRaporu = new System.Windows.Forms.Button();
+        this.btnExcelAktar = new System.Windows.Forms.Button();
         this.flowFiltre = new System.Windows.Forms.FlowLayoutPanel();
         this.lblFiltreBaslik = new System.Windows.Forms.Label();
         this.cmbFiltrePlaka = new System.Windows.Forms.ComboBox();
@@ -88,6 +98,12 @@ partial class AracHareketleriForm
         this.btnFiltreUygula = new System.Windows.Forms.Button();
         this.btnFiltreTemizle = new System.Windows.Forms.Button();
         this.dgvHareketler = new System.Windows.Forms.DataGridView();
+        this.flowSayfalama = new System.Windows.Forms.FlowLayoutPanel();
+        this.lblSayfaBoyutu = new System.Windows.Forms.Label();
+        this.cmbSayfaBoyutu = new System.Windows.Forms.ComboBox();
+        this.btnOncekiSayfa = new System.Windows.Forms.Button();
+        this.lblSayfaGostergesi = new System.Windows.Forms.Label();
+        this.btnSonrakiSayfa = new System.Windows.Forms.Button();
         this.lblStatus = new System.Windows.Forms.Label();
         this.tableRoot.SuspendLayout();
         this.flowUst.SuspendLayout();
@@ -99,6 +115,7 @@ partial class AracHareketleriForm
         ((System.ComponentModel.ISupportInitialize)(this.nudKm)).BeginInit();
         this.flowFiltre.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)(this.dgvHareketler)).BeginInit();
+        this.flowSayfalama.SuspendLayout();
         this.SuspendLayout();
         //
         // tableRoot -- ust (degisken boy) sihirbaz + alt (kalani doldur) grid icin 2 satirli
@@ -110,13 +127,28 @@ partial class AracHareketleriForm
         this.tableRoot.ColumnCount = 1;
         this.tableRoot.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
         this.tableRoot.Dock = System.Windows.Forms.DockStyle.Fill;
-        this.tableRoot.RowCount = 3;
+        // NOT (2026-08-04, 3. tur duzeltme): Onceki iki tur (form boyutu buyutme, DoubleBuffered,
+        // flowSayfalama'yi Absolute yukseklik yapma) sorunu TAM cozemedi - cunku kok neden hicbiri
+        // degildi: lblStatus, tableRoot'un DISINDA, Form'a ayrica Dock=Bottom olarak ekleniyordu.
+        // IKI BAGIMSIZ layout motoru (Form'un kendi Dock cozumlemesi + tableRoot'un kendi
+        // satir/hucre hesaplamasi) ayni dikey alani PAYLASMAYA calisiyordu - ikisi senkron
+        // olmayinca (ozellikle tableRoot'a yeni bir Absolute satir eklenince) lblStatus'un
+        // rezerve ettigi alanla tableRoot'un SON satirinin (flowSayfalama) hesapladigi alan
+        // CAKISIYORDU (lblStatus, flowSayfalama'nin ALTINDA/ARKASINDA kalip goze
+        // gorunmuyordu/ustune biniliyordu). KESIN COZUM: lblStatus da tableRoot'un kendi
+        // SON satiri yapildi - artik TEK bir layout motoru (tableRoot) formun TUM dikey
+        // yerlesimine karar veriyor, iki ayri Dock hesaplamasi arasinda cakisma imkani kalmadi.
+        this.tableRoot.RowCount = 5;
         this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
         this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+        this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 46F));
+        this.tableRoot.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 28F));
         this.tableRoot.Controls.Add(this.flowUst, 0, 0);
         this.tableRoot.Controls.Add(this.flowFiltre, 0, 1);
         this.tableRoot.Controls.Add(this.dgvHareketler, 0, 2);
+        this.tableRoot.Controls.Add(this.flowSayfalama, 0, 3);
+        this.tableRoot.Controls.Add(this.lblStatus, 0, 4);
         this.tableRoot.Name = "tableRoot";
         //
         // flowUst  -- pencere daralinca gruplar/butonlar alt satira kayar (responsive)
@@ -135,6 +167,7 @@ partial class AracHareketleriForm
         this.flowUst.Controls.Add(this.btnSil);
         this.flowUst.Controls.Add(this.btnYenile);
         this.flowUst.Controls.Add(this.btnHareketRaporu);
+        this.flowUst.Controls.Add(this.btnExcelAktar);
         this.flowUst.Name = "flowUst";
         this.flowUst.TabIndex = 0;
         //
@@ -308,6 +341,16 @@ partial class AracHareketleriForm
         this.btnHareketRaporu.UseVisualStyleBackColor = true;
         this.btnHareketRaporu.Click += new System.EventHandler(this.btnHareketRaporu_Click);
         //
+        // btnExcelAktar  -- o an gridde GORUNEN (filtreli olabilir) satirlari .xlsx olarak indirir
+        //
+        this.btnExcelAktar.Margin = new System.Windows.Forms.Padding(3, 26, 3, 3);
+        this.btnExcelAktar.Name = "btnExcelAktar";
+        this.btnExcelAktar.Size = new System.Drawing.Size(120, 30);
+        this.btnExcelAktar.TabIndex = 8;
+        this.btnExcelAktar.Text = "Excel'e Aktar";
+        this.btnExcelAktar.UseVisualStyleBackColor = true;
+        this.btnExcelAktar.Click += new System.EventHandler(this.btnExcelAktar_Click);
+        //
         // flowFiltre -- grid'in uzerindeki filtre seridi: doldurulan her alan, o alana TAM
         // ESIT olan satirlari gosterir (bos birakilan alanlar filtreye dahil edilmez).
         //
@@ -426,25 +469,82 @@ partial class AracHareketleriForm
         this.dgvHareketler.TabIndex = 1;
         this.dgvHareketler.SelectionChanged += new System.EventHandler(this.dgvHareketler_SelectionChanged);
         //
-        // lblStatus
+        // flowSayfalama -- grid'in hemen altinda, sayfa boyutu + onceki/sonraki
+        //
+        this.flowSayfalama.AutoSize = true;
+        this.flowSayfalama.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+        this.flowSayfalama.Dock = System.Windows.Forms.DockStyle.Fill;
+        this.flowSayfalama.WrapContents = true;
+        this.flowSayfalama.Padding = new System.Windows.Forms.Padding(10, 6, 10, 6);
+        this.flowSayfalama.Controls.Add(this.lblSayfaBoyutu);
+        this.flowSayfalama.Controls.Add(this.cmbSayfaBoyutu);
+        this.flowSayfalama.Controls.Add(this.btnOncekiSayfa);
+        this.flowSayfalama.Controls.Add(this.lblSayfaGostergesi);
+        this.flowSayfalama.Controls.Add(this.btnSonrakiSayfa);
+        this.flowSayfalama.Name = "flowSayfalama";
+        this.flowSayfalama.TabIndex = 2;
+        //
+        // lblSayfaBoyutu
+        //
+        this.lblSayfaBoyutu.AutoSize = true;
+        this.lblSayfaBoyutu.Margin = new System.Windows.Forms.Padding(3, 6, 6, 3);
+        this.lblSayfaBoyutu.Name = "lblSayfaBoyutu";
+        this.lblSayfaBoyutu.Text = "Sayfa başına:";
+        //
+        // cmbSayfaBoyutu
+        //
+        this.cmbSayfaBoyutu.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+        this.cmbSayfaBoyutu.Margin = new System.Windows.Forms.Padding(3, 3, 20, 3);
+        this.cmbSayfaBoyutu.Name = "cmbSayfaBoyutu";
+        this.cmbSayfaBoyutu.Size = new System.Drawing.Size(70, 23);
+        this.cmbSayfaBoyutu.TabIndex = 0;
+        this.cmbSayfaBoyutu.SelectedIndexChanged += new System.EventHandler(this.cmbSayfaBoyutu_SelectedIndexChanged);
+        //
+        // btnOncekiSayfa
+        //
+        this.btnOncekiSayfa.Margin = new System.Windows.Forms.Padding(3);
+        this.btnOncekiSayfa.Name = "btnOncekiSayfa";
+        this.btnOncekiSayfa.Size = new System.Drawing.Size(90, 26);
+        this.btnOncekiSayfa.TabIndex = 1;
+        this.btnOncekiSayfa.Text = "‹ Önceki";
+        this.btnOncekiSayfa.UseVisualStyleBackColor = true;
+        this.btnOncekiSayfa.Click += new System.EventHandler(this.btnOncekiSayfa_Click);
+        //
+        // lblSayfaGostergesi
+        //
+        this.lblSayfaGostergesi.AutoSize = true;
+        this.lblSayfaGostergesi.Margin = new System.Windows.Forms.Padding(10, 6, 10, 3);
+        this.lblSayfaGostergesi.Name = "lblSayfaGostergesi";
+        this.lblSayfaGostergesi.Text = "Sayfa 1 / 1";
+        //
+        // btnSonrakiSayfa
+        //
+        this.btnSonrakiSayfa.Margin = new System.Windows.Forms.Padding(3);
+        this.btnSonrakiSayfa.Name = "btnSonrakiSayfa";
+        this.btnSonrakiSayfa.Size = new System.Drawing.Size(90, 26);
+        this.btnSonrakiSayfa.TabIndex = 2;
+        this.btnSonrakiSayfa.Text = "Sonraki ›";
+        this.btnSonrakiSayfa.UseVisualStyleBackColor = true;
+        this.btnSonrakiSayfa.Click += new System.EventHandler(this.btnSonrakiSayfa_Click);
+        //
+        // lblStatus  -- artik tableRoot'un KENDI son satiri (Form'a ayrica Dock=Bottom
+        // EKLENMIYOR - bkz. tableRoot yorumu yukarida)
         //
         this.lblStatus.AutoSize = false;
-        this.lblStatus.Dock = System.Windows.Forms.DockStyle.Bottom;
+        this.lblStatus.Dock = System.Windows.Forms.DockStyle.Fill;
         this.lblStatus.ForeColor = System.Drawing.Color.DimGray;
-        this.lblStatus.Height = 28;
         this.lblStatus.Padding = new System.Windows.Forms.Padding(10, 0, 10, 0);
         this.lblStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
         this.lblStatus.Name = "lblStatus";
-        this.lblStatus.TabIndex = 2;
+        this.lblStatus.TabIndex = 3;
         //
         // AracHareketleriForm
         //
         this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-        this.ClientSize = new System.Drawing.Size(1000, 600);
-        this.Controls.Add(this.lblStatus);
+        this.ClientSize = new System.Drawing.Size(1000, 660);
         this.Controls.Add(this.tableRoot);
-        this.MinimumSize = new System.Drawing.Size(420, 320);
+        this.MinimumSize = new System.Drawing.Size(420, 420);
         this.Name = "AracHareketleriForm";
         this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
         this.Text = "Seyir Mobil - Araç Hareketleri";
@@ -466,6 +566,8 @@ partial class AracHareketleriForm
         this.flowFiltre.ResumeLayout(false);
         this.flowFiltre.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)(this.dgvHareketler)).EndInit();
+        this.flowSayfalama.ResumeLayout(false);
+        this.flowSayfalama.PerformLayout();
         this.ResumeLayout(false);
     }
 }

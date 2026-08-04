@@ -1,0 +1,44 @@
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: #1f2937;
+  color: #fff;
+}
+
+.app-header h1 {
+  font-size: 1.15rem;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.app-header nav {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.app-header nav a {
+  color: #d1d5db;
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+}
+
+.app-header nav a:hover {
+  background: #374151;
+  color: #fff;
+}
+
+.app-header nav a.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+main {
+  padding: 1.25rem 1.5rem;
+  width: 100%;
+}

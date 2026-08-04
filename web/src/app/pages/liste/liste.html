@@ -1,0 +1,156 @@
+<section class="card">
+  <h2>Yeni Kayıt Ekle</h2>
+  <div class="field-row">
+    <div class="field">
+      <label for="wizardPlaka">1. Plaka</label>
+      <select id="wizardPlaka" [(ngModel)]="wizardAracId" (change)="onPlakaSecildi()">
+        <option [ngValue]="null">— Seçiniz —</option>
+        @for (p of plakalar(); track p.aracId) {
+          <option [ngValue]="p.aracId">{{ p.aracPlaka }}</option>
+        }
+      </select>
+    </div>
+
+    @if (wizardAracId != null) {
+      <div class="field">
+        <label for="wizardTarih">2. Veri Tarihi</label>
+        <input
+          id="wizardTarih"
+          type="date"
+          [(ngModel)]="wizardTarih"
+          (change)="onTarihDegisti()"
+        />
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button (click)="tarihiOnayla()" [disabled]="sinirlarHesaplaniyor()">
+          {{ sinirlarHesaplaniyor() ? 'Hesaplanıyor…' : 'Tarihi Onayla →' }}
+        </button>
+      </div>
+    }
+
+    @if (tarihOnaylandi()) {
+      <div class="field">
+        <label for="wizardHiz">3. Hız</label>
+        <input id="wizardHiz" type="number" min="0" max="300" [(ngModel)]="wizardHiz" style="width: 90px" />
+      </div>
+      <div class="field">
+        <label for="wizardKm">4. Km Sayacı</label>
+        <input
+          id="wizardKm"
+          type="number"
+          step="0.01"
+          [min]="kmMin()"
+          [max]="kmMax()"
+          [(ngModel)]="wizardKm"
+          style="width: 140px"
+        />
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="primary" (click)="ekle()" [disabled]="!ekleEtkin() || ekleniyor()">
+          {{ ekleniyor() ? 'Ekleniyor…' : 'Ekle' }}
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (sinirBilgisi()) {
+    <p class="status-text" style="white-space: pre-line; margin-top: 0.75rem">{{ sinirBilgisi() }}</p>
+  }
+</section>
+
+<section class="card">
+  <h2>Filtre</h2>
+  <div class="field-row">
+    <div class="field">
+      <label for="filtrePlaka">Plaka</label>
+      <select id="filtrePlaka" [(ngModel)]="filtrePlaka">
+        @for (p of filtrePlakaListesi(); track p) {
+          <option [value]="p">{{ p }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label>
+        <input type="checkbox" [(ngModel)]="filtreTarihAktif" style="width: auto" />
+        Tarih
+      </label>
+      <input type="date" [(ngModel)]="filtreTarih" [disabled]="!filtreTarihAktif" />
+    </div>
+    <div class="field">
+      <label for="filtreHiz">Hız</label>
+      <input id="filtreHiz" type="text" [(ngModel)]="filtreHiz" style="width: 80px" />
+    </div>
+    <div class="field">
+      <label for="filtreKm">Km Sayacı</label>
+      <input id="filtreKm" type="text" [(ngModel)]="filtreKm" style="width: 110px" />
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <div style="display: flex; gap: 0.5rem">
+        <button class="primary" (click)="filtreleUygula()">Filtrele</button>
+        <button (click)="filtreleTemizle()">Temizle</button>
+      </div>
+    </div>
+  </div>
+  @if (filtreHatasi()) {
+    <p class="error-text" style="margin-top: 0.5rem">{{ filtreHatasi() }}</p>
+  }
+</section>
+
+<section class="card">
+  <div class="field-row" style="justify-content: space-between; margin-bottom: 0.75rem">
+    <h2 style="margin: 0">Araç Hareketleri</h2>
+    <div style="display: flex; gap: 0.5rem">
+      <button (click)="refreshGrid()">Yenile</button>
+      <button class="danger" (click)="sil()" [disabled]="!seciliHareket()">Sil</button>
+      <button (click)="excelAktar()" [disabled]="disaAktariliyor()">
+        {{ disaAktariliyor() ? 'Aktarılıyor…' : 'Excel\'e Aktar' }}
+      </button>
+    </div>
+  </div>
+
+  <div style="overflow-x: auto">
+    <table>
+      <thead>
+        <tr>
+          <th>Araç ID</th>
+          <th>Araç Plaka</th>
+          <th>Veri Tarihi</th>
+          <th>Hız</th>
+          <th>Km Sayacı</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (h of sayfalanmisHareketler(); track h.id) {
+          <tr [class.selected]="seciliHareket()?.id === h.id" (click)="satirSec(h)">
+            <td>{{ h.aracId }}</td>
+            <td>{{ h.aracPlaka }}</td>
+            <td>{{ formatTarih(h.veriTarihi) }}</td>
+            <td>{{ h.hiz }}</td>
+            <td>{{ h.kmSayaci.toFixed(2) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sayfalama">
+    <div class="sayfalama-boyut">
+      <label for="sayfaBoyutu">Sayfa başına:</label>
+      <select id="sayfaBoyutu" [(ngModel)]="sayfaBoyutu" (change)="sayfaBoyutuDegisti()">
+        @for (boyut of sayfaBoyutuSecenekleri; track boyut) {
+          <option [ngValue]="boyut">{{ boyut }}</option>
+        }
+      </select>
+    </div>
+    <div class="sayfalama-kontrol">
+      <button (click)="oncekiSayfa()" [disabled]="suankiSayfa() <= 1">‹ Önceki</button>
+      <span class="status-text">Sayfa {{ suankiSayfa() }} / {{ toplamSayfa() }}</span>
+      <button (click)="sonrakiSayfa()" [disabled]="suankiSayfa() >= toplamSayfa()">Sonraki ›</button>
+    </div>
+  </div>
+
+  <p class="status-text" style="margin-top: 0.75rem">{{ statusText() }}</p>
+</section>

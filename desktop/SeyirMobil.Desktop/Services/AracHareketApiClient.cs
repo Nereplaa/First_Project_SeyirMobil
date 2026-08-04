@@ -46,6 +46,20 @@ public class AracHareketApiClient
         return result ?? [];
     }
 
+    public async Task<byte[]> ExportHareketlerAsync(List<AracHareketDto> hareketler)
+    {
+        var response = await _http.PostAsJsonAsync("api/arac-hareketleri/export", hareketler);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
+    public async Task<byte[]> ExportRaporAsync(RaporExportRequestDto request)
+    {
+        var response = await _http.PostAsJsonAsync("api/arac-hareketleri/rapor-export", request);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
     public async Task<AracHareketSinirlarDto> GetSinirlarAsync(string plaka, DateOnly tarih)
     {
         var url = $"api/arac-hareketleri/sinirlar?plaka={Uri.EscapeDataString(plaka)}&tarih={tarih:yyyy-MM-dd}";

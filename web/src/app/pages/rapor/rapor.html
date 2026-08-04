@@ -1,0 +1,137 @@
+<section class="card">
+  <h2>Araç Hareket Raporu</h2>
+
+  <div class="field-row">
+    <div class="field">
+      <label for="plakaLookup">Araçlar (birden fazla seçebilirsiniz)</label>
+      <div class="lookup">
+        <input
+          id="plakaLookup"
+          type="text"
+          placeholder="Plaka ara..."
+          [(ngModel)]="plakaArama"
+          (focus)="lookupAc()"
+          (blur)="lookupKapat()"
+          autocomplete="off"
+          style="width: 220px"
+        />
+        @if (lookupAcik()) {
+          <ul class="lookup-liste">
+            @for (p of lookupSonuclari(); track p.aracId) {
+              <li (mousedown)="plakaSec(p.aracPlaka)">{{ p.aracPlaka }}</li>
+            } @empty {
+              <li class="lookup-bos">Eşleşen araç yok</li>
+            }
+          </ul>
+        }
+      </div>
+
+      @if (seciliPlakalar().length > 0) {
+        <div class="chip-listesi">
+          @for (plaka of seciliPlakalar(); track plaka) {
+            <span class="chip">
+              {{ plaka }}
+              <button type="button" class="chip-kaldir" (click)="plakaKaldir(plaka)" aria-label="Kaldır">×</button>
+            </span>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="field">
+      <label for="baslangic">Başlangıç Tarihi</label>
+      <input id="baslangic" type="date" [(ngModel)]="baslangic" (change)="onBaslangicDegisti()" />
+    </div>
+
+    <div class="field">
+      <label for="bitis">Bitiş Tarihi</label>
+      <input id="bitis" type="date" [(ngModel)]="bitis" [min]="baslangic" />
+    </div>
+
+    <div class="field">
+      <label>&nbsp;</label>
+      <label class="toggle-detayli">
+        <input type="checkbox" [(ngModel)]="detayliRapor" />
+        <span>Detaylı Rapor (gün gün)</span>
+      </label>
+    </div>
+
+    <div class="field">
+      <label>&nbsp;</label>
+      <button class="primary" (click)="raporOlustur()" [disabled]="!raporOlusturEtkin() || yukleniyor()">
+        {{ yukleniyor() ? 'Oluşturuluyor…' : 'Rapor Oluştur' }}
+      </button>
+    </div>
+
+    <div class="field">
+      <label for="exportModu">Excel Yapısı</label>
+      <select id="exportModu" [(ngModel)]="exportModu">
+        <option value="ayri">Her plaka için ayrı bölüm</option>
+        <option value="tumu">Tüm plakalar tek tabloda</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>&nbsp;</label>
+      <button (click)="excelAktar()" [disabled]="!raporOlusturEtkin() || disaAktariliyor()">
+        {{ disaAktariliyor() ? 'Aktarılıyor…' : 'Excel\'e Aktar' }}
+      </button>
+    </div>
+  </div>
+
+  <p class="status-text" style="margin-top: 0.75rem">{{ statusText() }}</p>
+</section>
+
+@if (raporUretildi() && !detayliRapor) {
+  <section class="card">
+    <div style="overflow-x: auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Araç Plakası</th>
+            <th>Başlangıç Km</th>
+            <th>Bitiş Km</th>
+            <th>Yapılan Km</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of ozetSonuclar(); track s.aracPlaka) {
+            <tr>
+              <td>{{ s.aracPlaka }}</td>
+              <td>{{ s.bulunduMu ? formatKm(s.baslangicKm) : 'Veri yok' }}</td>
+              <td>{{ s.bulunduMu ? formatKm(s.bitisKm) : 'Veri yok' }}</td>
+              <td>{{ s.bulunduMu ? formatKm(s.yapilanKm) : 'Veri yok' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}
+
+@if (raporUretildi() && detayliRapor) {
+  <section class="card">
+    <div style="overflow-x: auto">
+      <table>
+        <thead>
+          <tr>
+            <th>Araç Plaka</th>
+            <th>Veri Tarihi</th>
+            <th>Km Sayacı</th>
+            <th>Bir Önceki Okumaya Göre Artış</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (s of detaySonuclar(); track $index) {
+            <tr>
+              <td>{{ s.aracPlaka }}</td>
+              <td>{{ formatTarih(s.veriTarihi) }}</td>
+              <td>{{ formatKm(s.kmSayaci) }}</td>
+              <td>{{ s.artis == null ? '-' : formatKm(s.artis) }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

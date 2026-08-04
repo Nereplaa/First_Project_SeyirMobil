@@ -123,7 +123,7 @@ bildirimler doğrultusunda, sıradaki çalışma sırası netleşti:
 
 ---
 
-## 2026-08-04 — Detaylı Rapor Özelliği Tamamlandı
+## 2026-08-04 08:10 — Detaylı Rapor Özelliği Tamamlandı
 
 İlk demoda alınan geri bildirimin ilk maddesi hayata geçirildi: "Araç Hareket Raporu" ekranına
 **"Detaylı Rapor (gün gün)"** seçeneği eklendi. İşaretlendiğinde, seçilen tarih aralığındaki her
@@ -138,7 +138,36 @@ Ayrıca, önceki demoda gündeme gelen iki açık soru netleşti:
 
 ---
 
+## 2026-08-04 09:08 — Web Uygulaması Yayında: Tüm Özellikler Angular'a Taşındı
+
+Kullanıcının Detaylı Rapor özelliğini onaylamasının ardından, masaüstündeki tüm işlevleri kapsayan
+bir web arayüzü geliştirildi — araç hareketleri listesi ve filtreleme, yeni kayıt ekleme sihirbazı,
+kayıt silme, ve rapor ekranı (özet ve detaylı mod ikisi de). Web arayüzü aynı backend API'sini
+kullanıyor; ikinci bir API yazılmadı.
+
+Bu aşamada amaç görsel tasarım değil, işlevsel eksiksizlik — masaüstünde yapılabilen her şeyin
+web'de de yapılabilmesi. Görsel/arayüz geliştirmesi (kurumun önerdiği DevExtreme bileşen
+kütüphanesiyle) bir sonraki aşamada ayrıca ele alınacak; o aşamada kurumsal lisans netleşene kadar
+kişisel bir deneme hesabıyla ilerlenecek.
+
+---
+
+## 2026-08-04 09:52 — Sayfalama ve Excel'e Aktarma (Web + Masaüstü)
+
+Kullanıcı geri bildirimiyle: araç hareketleri listesine sayfalama (sayfa başına gösterilecek kayıt
+sayısı seçilebiliyor) ve Excel'e aktarma özelliği eklendi — hem web hem masaüstü uygulamasında.
+Bir filtre uygulanmışsa, sadece o filtreye uyan kayıtlar Excel'e aktarılıyor. Rapor ekranında da
+benzer şekilde Excel'e aktarma eklendi; kullanıcı isterse her aracı kendi başlığı altında ayrı bir
+bölüm olarak, isterse tüm araçları tek bir tabloda dışa aktarabiliyor.
+
+Excel dosyaları backend'de üretiliyor, böylece web ve masaüstü aynı mantığı paylaşıyor — ikisi de
+aynı sonucu üretiyor.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
-- [ ] Web istemcisinin eklenmesi (aynı backend API üzerinden)
-- [ ] UI/UX iyileştirmeleri
+- [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
+- [x] Sayfalama ve Excel'e aktarma (web + masaüstü)
+- [ ] UI/UX iyileştirmeleri (DevExtreme ile)
+- [ ] Docker ile konteynerleştirme

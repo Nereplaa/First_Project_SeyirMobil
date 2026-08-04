@@ -15,9 +15,21 @@ public partial class AracHareketleriForm : Form
     // Filtre seridi, API'ye tekrar gitmeden bu listenin uzerinde bellekte calisiyor.
     private List<AracHareketDto> _tumHareketler = [];
 
+    // Filtrenin o an ORTAYA COKARDIGI (filtresizken _tumHareketler ile ayni) liste - sayfalama
+    // bunun uzerinde calisir, Excel'e Aktar da BUNU (sadece o anki sayfayi degil) disa aktarir.
+    private List<AracHareketDto> _gosterilenHareketler = [];
+    private int _suankiSayfa = 1;
+    private int _sayfaBoyutu = 25;
+
     public AracHareketleriForm()
     {
         InitializeComponent();
+        // Sayfalama eklendikten sonra dgvHareketler'in Yuksekligi her DataSource degisiminde
+        // (sayfa/sayfa boyutu degisince) yeniden hesaplaniyor - bu, form cift-tamponlanmadan
+        // (double buffered) yapilinca eskiden kapladigi alanin "hayalet" gibi ekranda kalmasina
+        // (arkadaki baska bir pencerenin gorunmesine kadar varan bir cizim artifaktina) yol
+        // aciyordu. DoubleBuffered = true, WinForms'ta bu sinif sorunlar icin standart cozum.
+        DoubleBuffered = true;
         SetupGridColumns();
     }
 
@@ -72,6 +84,9 @@ public partial class AracHareketleriForm : Form
 
     private async void AracHareketleriForm_Load(object? sender, EventArgs e)
     {
+        cmbSayfaBoyutu.Items.AddRange([10, 25, 50, 100]);
+        cmbSayfaBoyutu.SelectedItem = _sayfaBoyutu;
+
         await RefreshGridAsync();
         await PlakalarYukleAsync();
         FiltrePlakaListesiniDoldur();
@@ -94,7 +109,9 @@ public partial class AracHareketleriForm : Form
         try
         {
             _tumHareketler = await _apiClient.GetTumHareketlerAsync();
-            dgvHareketler.DataSource = _tumHareketler;
+            _gosterilenHareketler = _tumHareketler;
+            _suankiSayfa = 1;
+            GuncelleSayfalamaVeGrid();
             lblStatus.Text = $"{_tumHareketler.Count} hareket kaydı yüklendi.";
         }
         catch (Exception ex)
@@ -113,6 +130,97 @@ public partial class AracHareketleriForm : Form
             // aksi halde basliklar/ust satirlar bir onceki yerlesimin altinda kalabiliyordu.
             flowUst.PerformLayout();
             PerformLayout();
+        }
+    }
+
+    // ---------- Sayfalama (filtrelenmiş/gösterilen liste üzerinde, yerelde) ----------
+
+    private void GuncelleSayfalamaVeGrid()
+    {
+        var toplamSayfa = Math.Max(1, (int)Math.Ceiling(_gosterilenHareketler.Count / (double)_sayfaBoyutu));
+        _suankiSayfa = Math.Clamp(_suankiSayfa, 1, toplamSayfa);
+
+        var sayfaVerisi = _gosterilenHareketler
+            .Skip((_suankiSayfa - 1) * _sayfaBoyutu)
+            .Take(_sayfaBoyutu)
+            .ToList();
+
+        dgvHareketler.DataSource = sayfaVerisi;
+        lblSayfaGostergesi.Text = $"Sayfa {_suankiSayfa} / {toplamSayfa}";
+        btnOncekiSayfa.Enabled = _suankiSayfa > 1;
+        btnSonrakiSayfa.Enabled = _suankiSayfa < toplamSayfa;
+
+        // tableRoot 4 satira (flowUst/flowFiltre/dgvHareketler/flowSayfalama) cikinca,
+        // DataSource her degistiginde grid + sayfalama seridinin dogru yeniden hizalanmasini
+        // garantiliyoruz. Invalidate(true) BUTUN formu (sadece degisen kontrolu degil) yeniden
+        // ciziyor - aksi halde dgvHareketler kucculunce eskiden kapladigi alan hic yeniden
+        // boyanmayip "hayalet" gibi kalabiliyordu (bkz. api_patterns.md - TableLayoutPanel +
+        // PerformLayout deseni, ve DoubleBuffered notu yukarida).
+        tableRoot.PerformLayout();
+        PerformLayout();
+        Invalidate(true);
+        Update();
+    }
+
+    private void cmbSayfaBoyutu_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        if (cmbSayfaBoyutu.SelectedItem is not int boyut)
+        {
+            return;
+        }
+        _sayfaBoyutu = boyut;
+        _suankiSayfa = 1;
+        GuncelleSayfalamaVeGrid();
+    }
+
+    private void btnOncekiSayfa_Click(object? sender, EventArgs e)
+    {
+        _suankiSayfa--;
+        GuncelleSayfalamaVeGrid();
+    }
+
+    private void btnSonrakiSayfa_Click(object? sender, EventArgs e)
+    {
+        _suankiSayfa++;
+        GuncelleSayfalamaVeGrid();
+    }
+
+    // ---------- Excel'e Aktar (o an GORUNEN - filtreli olabilir - TUM satirlar, sadece o anki sayfa degil) ----------
+
+    private async void btnExcelAktar_Click(object? sender, EventArgs e)
+    {
+        if (_gosterilenHareketler.Count == 0)
+        {
+            MessageBox.Show("Aktarılacak kayıt yok.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        using var dialog = new SaveFileDialog
+        {
+            Filter = "Excel Dosyası (*.xlsx)|*.xlsx",
+            FileName = "arac-hareketleri.xlsx"
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        btnExcelAktar.Enabled = false;
+        lblStatus.Text = "Excel oluşturuluyor...";
+        try
+        {
+            var veri = await _apiClient.ExportHareketlerAsync(_gosterilenHareketler);
+            await File.WriteAllBytesAsync(dialog.FileName, veri);
+            lblStatus.Text = "Excel dosyası kaydedildi.";
+        }
+        catch (Exception ex)
+        {
+            lblStatus.Text = "Excel'e aktarılamadı.";
+            MessageBox.Show($"Excel'e aktarılamadı.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnExcelAktar.Enabled = true;
         }
     }
 
@@ -390,9 +498,10 @@ public partial class AracHareketleriForm : Form
             sonuc = sonuc.Where(h => h.KmSayaci == km);
         }
 
-        var liste = sonuc.ToList();
-        dgvHareketler.DataSource = liste;
-        lblStatus.Text = $"{liste.Count} / {_tumHareketler.Count} kayıt gösteriliyor (filtreli).";
+        _gosterilenHareketler = sonuc.ToList();
+        _suankiSayfa = 1;
+        GuncelleSayfalamaVeGrid();
+        lblStatus.Text = $"{_gosterilenHareketler.Count} / {_tumHareketler.Count} kayıt gösteriliyor (filtreli).";
     }
 
     private void btnFiltreTemizle_Click(object? sender, EventArgs e)
@@ -402,7 +511,9 @@ public partial class AracHareketleriForm : Form
         txtFiltreHiz.Clear();
         txtFiltreKm.Clear();
 
-        dgvHareketler.DataSource = _tumHareketler;
+        _gosterilenHareketler = _tumHareketler;
+        _suankiSayfa = 1;
+        GuncelleSayfalamaVeGrid();
         lblStatus.Text = $"{_tumHareketler.Count} hareket kaydı yüklendi.";
     }
 }

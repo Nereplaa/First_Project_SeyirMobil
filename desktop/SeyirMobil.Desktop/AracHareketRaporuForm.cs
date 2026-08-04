@@ -211,4 +211,50 @@ public partial class AracHareketRaporuForm : Form
             btnRaporOlustur.Enabled = cblPlakalar.CheckedItems.Count > 0 && groupBitis.Visible;
         }
     }
+
+    private async void btnExcelAktar_Click(object? sender, EventArgs e)
+    {
+        var secilenPlakalar = cblPlakalar.CheckedItems.Cast<string>().ToList();
+        if (secilenPlakalar.Count == 0 || !groupBitis.Visible)
+        {
+            MessageBox.Show("Önce en az bir plaka ve geçerli bir tarih aralığı seçmelisin.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var modAdi = chkDetayliRapor.Checked ? "detayli" : "ozet";
+        using var dialog = new SaveFileDialog
+        {
+            Filter = "Excel Dosyası (*.xlsx)|*.xlsx",
+            FileName = $"rapor-{modAdi}.xlsx"
+        };
+        if (dialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        var request = new RaporExportRequestDto(
+            secilenPlakalar,
+            DateOnly.FromDateTime(dtpBaslangic.Value),
+            DateOnly.FromDateTime(dtpBitis.Value),
+            chkDetayliRapor.Checked,
+            cmbExportModu.SelectedIndex == 0);
+
+        btnExcelAktar.Enabled = false;
+        lblStatus.Text = "Excel oluşturuluyor...";
+        try
+        {
+            var veri = await _apiClient.ExportRaporAsync(request);
+            await File.WriteAllBytesAsync(dialog.FileName, veri);
+            lblStatus.Text = "Excel dosyası kaydedildi.";
+        }
+        catch (Exception ex)
+        {
+            lblStatus.Text = "Excel'e aktarılamadı.";
+            MessageBox.Show($"Excel'e aktarılamadı.\n\nHata: {ex.Message}", "Hata", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            btnExcelAktar.Enabled = true;
+        }
+    }
 }

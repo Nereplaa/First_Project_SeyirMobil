@@ -21,3 +21,23 @@ public record AracHareketDetayRaporSatiri(
     DateOnly VeriTarihi,
     decimal KmSayaci,
     decimal? Artis);
+
+// Excel export istekleri (2026-08-04). AyriPlakaBazliMi: true ise dosyada her
+// plaka icin ayri bir baslik+veri blogu, false ise tum plakalar tek bir
+// tablo altinda birlesik.
+public record RaporExportRequest(
+    List<string> Plakalar,
+    DateOnly Baslangic,
+    DateOnly Bitis,
+    bool DetayliMi,
+    bool AyriPlakaBazliMi);
+
+// Ana liste (arac-hareketleri) export'u icin - istemci (web/masaustu) o an
+// EKRANDA GOSTERDIGI (filtreli olabilir) satirlari oldugu gibi gonderir,
+// backend sadece Excel'e bicimlendirir - filtreleme mantigi istemcide kalir.
+public record AracHareketExportSatiri(
+    int AracId,
+    string AracPlaka,
+    DateOnly VeriTarihi,
+    int Hiz,
+    decimal KmSayaci);

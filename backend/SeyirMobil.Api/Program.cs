@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using SeyirMobil.Api.Data;
 using SeyirMobil.Api.Models;
@@ -11,6 +12,15 @@ builder.Services.AddDbContext<SeyirMobilDbContext>(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+const string WebClientCorsPolicy = "WebClient";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(WebClientCorsPolicy, policy =>
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -18,6 +28,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors(WebClientCorsPolicy);
 
 app.MapGet("/api/vehicles", async (SeyirMobilDbContext db) =>
     await db.Vehicles.OrderBy(v => v.AracId).ToListAsync())
@@ -221,18 +233,155 @@ app.MapGet("/api/arac-hareketleri/plakalar", async (SeyirMobilDbContext db) =>
 // Coklu plaka secimi icin toplu rapor - her plaka icin ayni "ilk/son okuma farki" mantigi
 // tekrarlanir, tek bir istekte hepsi donulur (masaustunun N kere API'ye gitmesi yerine).
 app.MapPost("/api/arac-hareketleri/rapor-toplu", async (RaporTopluRequest request, SeyirMobilDbContext db) =>
+    Results.Ok(await HesaplaOzetRaporAsync(request.Plakalar, request.Baslangic, request.Bitis, db)))
+    .WithName("GetAracHareketRaporuToplu");
+
+// Detayli rapor: secilen plaka+tarih araligindaki HER gercek okumayi, bir
+// onceki okumaya gore km farkiyla birlikte donuyor. Interpolasyon YOK -
+// mevcut veri granularitesi aynen kullaniliyor (kullanici onayli mantik,
+// 2026-08-04).
+app.MapPost("/api/arac-hareketleri/rapor-detay", async (RaporTopluRequest request, SeyirMobilDbContext db) =>
+    Results.Ok(await HesaplaDetayRaporAsync(request.Plakalar, request.Baslangic, request.Bitis, db)))
+    .WithName("GetAracHareketDetayRaporu");
+
+// Ana liste export'u (2026-08-04) - istemci ekranda o an gosterdigi (filtreli
+// olabilir) satirlari gonderir, backend sadece tek tablolu bir .xlsx uretir.
+app.MapPost("/api/arac-hareketleri/export", (List<AracHareketExportSatiri> satirlar) =>
+{
+    using var workbook = new XLWorkbook();
+    var sheet = workbook.Worksheets.Add("Araç Hareketleri");
+
+    var satirNo = YazKolonBasliklari(sheet, 1, ["Araç ID", "Araç Plaka", "Veri Tarihi", "Hız", "Km Sayacı"]);
+    foreach (var s in satirlar)
+    {
+        sheet.Cell(satirNo, 1).Value = s.AracId;
+        sheet.Cell(satirNo, 2).Value = s.AracPlaka;
+        YazTarihHucresi(sheet.Cell(satirNo, 3), s.VeriTarihi);
+        sheet.Cell(satirNo, 4).Value = s.Hiz;
+        YazKmHucresi(sheet.Cell(satirNo, 5), s.KmSayaci);
+        satirNo++;
+    }
+
+    sheet.Columns().AdjustToContents();
+    return ExcelDosyasiSonucu(workbook, "arac-hareketleri.xlsx");
+})
+.WithName("ExportAracHareketleri");
+
+// Rapor export'u (2026-08-04) - ozet/detayli VE ayri-plaka-bazli/tumu-birlesik
+// modlarinin 4 kombinasyonunu da uretir. Rapor hesabi ayni
+// HesaplaOzetRaporAsync/HesaplaDetayRaporAsync fonksiyonlarini kullanir -
+// ekrandaki rapor ile export arasinda mantik SAPMASI olmaz.
+app.MapPost("/api/arac-hareketleri/rapor-export", async (RaporExportRequest request, SeyirMobilDbContext db) =>
+{
+    using var workbook = new XLWorkbook();
+    var sheet = workbook.Worksheets.Add("Rapor");
+    var satirNo = 1;
+
+    if (request.DetayliMi)
+    {
+        var detaySonuclar = await HesaplaDetayRaporAsync(request.Plakalar, request.Baslangic, request.Bitis, db);
+        string[] basliklar = ["Araç Plaka", "Veri Tarihi", "Km Sayacı", "Bir Önceki Okumaya Göre Artış"];
+
+        void YazDetaySatirlari(IEnumerable<AracHareketDetayRaporSatiri> kaynak)
+        {
+            foreach (var s in kaynak)
+            {
+                sheet.Cell(satirNo, 1).Value = s.AracPlaka;
+                YazTarihHucresi(sheet.Cell(satirNo, 2), s.VeriTarihi);
+                YazKmHucresi(sheet.Cell(satirNo, 3), s.KmSayaci);
+                if (s.Artis.HasValue)
+                {
+                    YazKmHucresi(sheet.Cell(satirNo, 4), s.Artis.Value);
+                }
+                else
+                {
+                    sheet.Cell(satirNo, 4).Value = "-";
+                }
+                satirNo++;
+            }
+        }
+
+        if (request.AyriPlakaBazliMi)
+        {
+            foreach (var plaka in request.Plakalar)
+            {
+                satirNo = YazPlakaBasligi(sheet, satirNo, plaka, basliklar.Length);
+                satirNo = YazKolonBasliklari(sheet, satirNo, basliklar);
+                YazDetaySatirlari(detaySonuclar.Where(s => s.AracPlaka == plaka));
+                satirNo++; // bloklar arasi bos satir
+            }
+        }
+        else
+        {
+            satirNo = YazKolonBasliklari(sheet, satirNo, basliklar);
+            YazDetaySatirlari(detaySonuclar);
+        }
+    }
+    else
+    {
+        var ozetSonuclar = await HesaplaOzetRaporAsync(request.Plakalar, request.Baslangic, request.Bitis, db);
+        string[] basliklar = ["Araç Plakası", "Başlangıç Km", "Bitiş Km", "Yapılan Km"];
+
+        void YazOzetSatirlari(IEnumerable<AracRaporSonucu> kaynak)
+        {
+            foreach (var s in kaynak)
+            {
+                sheet.Cell(satirNo, 1).Value = s.AracPlaka;
+                if (s.BulunduMu)
+                {
+                    YazKmHucresi(sheet.Cell(satirNo, 2), s.BaslangicKm!.Value);
+                    YazKmHucresi(sheet.Cell(satirNo, 3), s.BitisKm!.Value);
+                    YazKmHucresi(sheet.Cell(satirNo, 4), s.YapilanKm!.Value);
+                }
+                else
+                {
+                    sheet.Cell(satirNo, 2).Value = "Veri yok";
+                    sheet.Cell(satirNo, 3).Value = "Veri yok";
+                    sheet.Cell(satirNo, 4).Value = "Veri yok";
+                }
+                satirNo++;
+            }
+        }
+
+        if (request.AyriPlakaBazliMi)
+        {
+            foreach (var s in ozetSonuclar)
+            {
+                satirNo = YazPlakaBasligi(sheet, satirNo, s.AracPlaka, basliklar.Length);
+                satirNo = YazKolonBasliklari(sheet, satirNo, basliklar);
+                YazOzetSatirlari([s]);
+                satirNo++;
+            }
+        }
+        else
+        {
+            satirNo = YazKolonBasliklari(sheet, satirNo, basliklar);
+            YazOzetSatirlari(ozetSonuclar);
+        }
+    }
+
+    sheet.Columns().AdjustToContents();
+    return ExcelDosyasiSonucu(workbook, "rapor.xlsx");
+})
+.WithName("ExportRapor");
+
+app.Run();
+
+// ---------- Rapor hesaplama (rapor-toplu/rapor-detay VE export endpoint'leri ortak kullanir) ----------
+
+static async Task<List<AracRaporSonucu>> HesaplaOzetRaporAsync(List<string> plakalar, DateOnly baslangic, DateOnly bitis, SeyirMobilDbContext db)
 {
     var sonuclar = new List<AracRaporSonucu>();
 
-    foreach (var plaka in request.Plakalar)
+    foreach (var plaka in plakalar)
     {
         var baslangicKayit = await db.AracHareketleri
-            .Where(h => h.AracPlaka == plaka && h.VeriTarihi >= request.Baslangic)
+            .Where(h => h.AracPlaka == plaka && h.VeriTarihi >= baslangic)
             .OrderBy(h => h.VeriTarihi)
             .FirstOrDefaultAsync();
 
         var bitisKayit = await db.AracHareketleri
-            .Where(h => h.AracPlaka == plaka && h.VeriTarihi <= request.Bitis)
+            .Where(h => h.AracPlaka == plaka && h.VeriTarihi <= bitis)
             .OrderByDescending(h => h.VeriTarihi)
             .FirstOrDefaultAsync();
 
@@ -252,22 +401,17 @@ app.MapPost("/api/arac-hareketleri/rapor-toplu", async (RaporTopluRequest reques
             bitisKayit.KmSayaci - baslangicKayit.KmSayaci));
     }
 
-    return Results.Ok(sonuclar);
-})
-.WithName("GetAracHareketRaporuToplu");
+    return sonuclar;
+}
 
-// Detayli rapor: secilen plaka+tarih araligindaki HER gercek okumayi, bir
-// onceki okumaya gore km farkiyla birlikte donuyor. Interpolasyon YOK -
-// mevcut veri granularitesi aynen kullaniliyor (kullanici onayli mantik,
-// 2026-08-04).
-app.MapPost("/api/arac-hareketleri/rapor-detay", async (RaporTopluRequest request, SeyirMobilDbContext db) =>
+static async Task<List<AracHareketDetayRaporSatiri>> HesaplaDetayRaporAsync(List<string> plakalar, DateOnly baslangic, DateOnly bitis, SeyirMobilDbContext db)
 {
     var sonuc = new List<AracHareketDetayRaporSatiri>();
 
-    foreach (var plaka in request.Plakalar)
+    foreach (var plaka in plakalar)
     {
         var okumalar = await db.AracHareketleri
-            .Where(h => h.AracPlaka == plaka && h.VeriTarihi >= request.Baslangic && h.VeriTarihi <= request.Bitis)
+            .Where(h => h.AracPlaka == plaka && h.VeriTarihi >= baslangic && h.VeriTarihi <= bitis)
             .OrderBy(h => h.VeriTarihi)
             .ToListAsync();
 
@@ -280,10 +424,55 @@ app.MapPost("/api/arac-hareketleri/rapor-detay", async (RaporTopluRequest reques
         }
     }
 
-    return Results.Ok(sonuc);
-})
-.WithName("GetAracHareketDetayRaporu");
+    return sonuc;
+}
 
-app.Run();
+// ---------- Excel yazma yardımcıları (ClosedXML) ----------
+
+static int YazKolonBasliklari(IXLWorksheet sheet, int satirNo, IReadOnlyList<string> basliklar)
+{
+    for (var i = 0; i < basliklar.Count; i++)
+    {
+        var hucre = sheet.Cell(satirNo, i + 1);
+        hucre.Value = basliklar[i];
+        hucre.Style.Font.Bold = true;
+        hucre.Style.Fill.BackgroundColor = XLColor.FromHtml("#F3F4F6");
+    }
+    return satirNo + 1;
+}
+
+// Plaka adini, kolon sayisi kadar hucreyi birlestirerek kalin bir "bölüm başlığı" olarak yazar.
+static int YazPlakaBasligi(IXLWorksheet sheet, int satirNo, string plaka, int kolonSayisi)
+{
+    var hucre = sheet.Cell(satirNo, 1);
+    hucre.Value = plaka;
+    hucre.Style.Font.Bold = true;
+    hucre.Style.Font.FontSize = 13;
+    hucre.Style.Fill.BackgroundColor = XLColor.FromHtml("#DBEAFE");
+    sheet.Range(satirNo, 1, satirNo, kolonSayisi).Merge();
+    return satirNo + 1;
+}
+
+static void YazTarihHucresi(IXLCell hucre, DateOnly tarih)
+{
+    hucre.Value = tarih.ToDateTime(TimeOnly.MinValue);
+    hucre.Style.DateFormat.Format = "dd.MM.yyyy";
+}
+
+static void YazKmHucresi(IXLCell hucre, decimal km)
+{
+    hucre.Value = km;
+    hucre.Style.NumberFormat.Format = "#,##0.00";
+}
+
+static IResult ExcelDosyasiSonucu(XLWorkbook workbook, string dosyaAdi)
+{
+    using var stream = new MemoryStream();
+    workbook.SaveAs(stream);
+    return Results.File(
+        stream.ToArray(),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        dosyaAdi);
+}
 
 record CreateVehicleRequest(string Plaka, decimal TotalKm);

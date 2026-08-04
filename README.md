@@ -23,7 +23,7 @@ bir yapıya evrilecek.
    ASP.NET Core Web API   ← tüm iş mantığı, tüm veritabanı erişimi burada
              ↑  (HTTP/JSON)
    ┌─────────┼──────────────┐
-Masaüstü    Web (ileride)  (ileride: Mobil)
+Masaüstü    Web            (ileride: Mobil)
 (WinForms)  (Angular)
 ```
 
@@ -38,7 +38,8 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
 | Backend / API | ASP.NET Core Web API (.NET 10) |
 | ORM | Entity Framework Core |
 | Masaüstü istemci | WinForms (C#) |
-| Web istemci (ileride) | Angular (SPA) |
+| Web istemci | Angular 22 (SPA) |
+| Excel export | ClosedXML (MIT, backend'de üretilir) |
 | UI komponentleri (ileride) | DevExtreme (ticari lisans — kurumla görüşülecek) |
 | Dağıtım (ileride) | Docker (planlanıyor) |
 
@@ -58,12 +59,18 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
   detaylı rapor (masaüstü) → web uygulaması (temel altyapı) → arayüz geliştirme → Docker.
 - ✅ Rapor ekranına "Detaylı Rapor (gün gün)" modu eklendi — seçilen tarih aralığındaki her okumanın
   bir öncekine göre kilometre artışını gösteriyor.
+- ✅ Web uygulaması (Angular) yayında — masaüstündeki tüm özellikler (liste/filtre, ekleme/silme,
+  rapor özet+detaylı) aynı backend API üzerinden web'de de çalışıyor. Görsel/arayüz geliştirmesi
+  bir sonraki aşamada.
+- ✅ Araç hareketleri listesine sayfalama eklendi (sayfa başına kayıt sayısı seçilebiliyor), hem
+  web hem masaüstünde. Liste ve rapor ekranlarına Excel'e aktarma eklendi — filtre uygulanmışsa
+  sadece filtrelenmiş sonuçlar, rapor ekranında araç başına ayrı bölüm veya tek tablo seçenekli.
 
 Detaylı ilerleme için bkz. [TIMELINE.md](TIMELINE.md).
 
 ## Proje Yapısı
 
-Backend, masaüstü ve veritabanı katmanları en üst seviyede net şekilde ayrılmıştır:
+Backend, masaüstü, web ve veritabanı katmanları en üst seviyede net şekilde ayrılmıştır:
 
 ```
 ├── database/                    ← SQL script'leri (sıralı, ör. 001_..., 002_...)
@@ -75,6 +82,8 @@ Backend, masaüstü ve veritabanı katmanları en üst seviyede net şekilde ayr
 │   └── SeyirMobil.Api/          ← ASP.NET Core Web API + EF Core (tüm iş mantığı, DB erişimi)
 ├── desktop/
 │   └── SeyirMobil.Desktop/      ← WinForms masaüstü istemcisi (araç hareketleri listesi + rapor)
+├── web/
+│   └── seyir-mobil-web/         ← Angular web istemcisi (aynı backend API'yi kullanır)
 ├── SeyirMobil.slnx               ← .NET solution (backend + desktop projelerini kapsar)
 ├── README.md
 └── TIMELINE.md

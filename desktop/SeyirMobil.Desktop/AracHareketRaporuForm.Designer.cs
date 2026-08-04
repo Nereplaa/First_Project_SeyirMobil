@@ -26,6 +26,8 @@ partial class AracHareketRaporuForm
     private System.Windows.Forms.DateTimePicker dtpBitis;
     private System.Windows.Forms.CheckBox chkDetayliRapor;
     private System.Windows.Forms.Button btnRaporOlustur;
+    private System.Windows.Forms.ComboBox cmbExportModu;
+    private System.Windows.Forms.Button btnExcelAktar;
     private System.Windows.Forms.Button btnGeri;
     private System.Windows.Forms.DataGridView dgvRapor;
     private System.Windows.Forms.Label lblStatus;
@@ -45,6 +47,8 @@ partial class AracHareketRaporuForm
         this.dtpBitis = new System.Windows.Forms.DateTimePicker();
         this.chkDetayliRapor = new System.Windows.Forms.CheckBox();
         this.btnRaporOlustur = new System.Windows.Forms.Button();
+        this.cmbExportModu = new System.Windows.Forms.ComboBox();
+        this.btnExcelAktar = new System.Windows.Forms.Button();
         this.btnGeri = new System.Windows.Forms.Button();
         this.dgvRapor = new System.Windows.Forms.DataGridView();
         this.lblStatus = new System.Windows.Forms.Label();
@@ -82,6 +86,8 @@ partial class AracHareketRaporuForm
         this.flowUst.Controls.Add(this.groupBitis);
         this.flowUst.Controls.Add(this.chkDetayliRapor);
         this.flowUst.Controls.Add(this.btnRaporOlustur);
+        this.flowUst.Controls.Add(this.cmbExportModu);
+        this.flowUst.Controls.Add(this.btnExcelAktar);
         this.flowUst.Controls.Add(this.btnGeri);
         this.flowUst.Name = "flowUst";
         this.flowUst.TabIndex = 0;
@@ -185,12 +191,32 @@ partial class AracHareketRaporuForm
         this.btnRaporOlustur.UseVisualStyleBackColor = true;
         this.btnRaporOlustur.Click += new System.EventHandler(this.btnRaporOlustur_Click);
         //
+        // cmbExportModu -- Excel'e Aktar hangi yapida (ayri bolum / tek tablo) uretilecek
+        //
+        this.cmbExportModu.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+        this.cmbExportModu.Margin = new System.Windows.Forms.Padding(20, 26, 3, 3);
+        this.cmbExportModu.Name = "cmbExportModu";
+        this.cmbExportModu.Size = new System.Drawing.Size(210, 23);
+        this.cmbExportModu.TabIndex = 5;
+        this.cmbExportModu.Items.AddRange(new object[] { "Her plaka için ayrı bölüm", "Tüm plakalar tek tabloda" });
+        this.cmbExportModu.SelectedIndex = 0;
+        //
+        // btnExcelAktar
+        //
+        this.btnExcelAktar.Margin = new System.Windows.Forms.Padding(3, 26, 10, 3);
+        this.btnExcelAktar.Name = "btnExcelAktar";
+        this.btnExcelAktar.Size = new System.Drawing.Size(120, 32);
+        this.btnExcelAktar.TabIndex = 6;
+        this.btnExcelAktar.Text = "Excel'e Aktar";
+        this.btnExcelAktar.UseVisualStyleBackColor = true;
+        this.btnExcelAktar.Click += new System.EventHandler(this.btnExcelAktar_Click);
+        //
         // btnGeri
         //
         this.btnGeri.Margin = new System.Windows.Forms.Padding(3, 26, 3, 3);
         this.btnGeri.Name = "btnGeri";
         this.btnGeri.Size = new System.Drawing.Size(92, 32);
-        this.btnGeri.TabIndex = 5;
+        this.btnGeri.TabIndex = 7;
         this.btnGeri.Text = "← Geri";
         this.btnGeri.UseVisualStyleBackColor = true;
         this.btnGeri.Click += new System.EventHandler(this.btnGeri_Click);
