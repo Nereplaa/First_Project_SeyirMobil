@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -7,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SeyirMobil.Api.Data;
 using SeyirMobil.Api.Models;
+using SeyirMobil.Api.Services;
 using SeyirMobil.Api.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,6 +51,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<SessionStore>();
 
 var app = builder.Build();
 
@@ -60,6 +63,29 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(WebClientCorsPolicy);
 app.UseAuthentication();
+
+// Sliding idle-timeout (2026-08-04, kullanici istegi): JWT'nin kendi suresi (Jwt:ExpiryMinutes,
+// gunluk mutlak ust sinir) DEGISMIYOR, ama her JWT'ye login'de gomulen bir oturum kimligi ("sid"
+// claim'i) uzerinden ayrica takip edilen bir "bosta kalma" siniri var (Jwt:IdleTimeoutMinutes).
+// Kimlik dogrulanmis HER istek, oturumu SessionStore'da yeniler (DogrulaVeYenile) - bu yuzden
+// istemci tarafinda ayri bir "refresh" cagrisina hic gerek yok, normal API kullanimi zaten
+// oturumu canli tutuyor. Belirtilen sure boyunca hic istek gelmezse bir sonraki istek 401 doner.
+var idleTimeout = TimeSpan.FromMinutes(double.Parse(jwtSection["IdleTimeoutMinutes"]!, CultureInfo.InvariantCulture));
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var sessionStore = context.RequestServices.GetRequiredService<SessionStore>();
+        var sessionId = context.User.FindFirstValue("sid");
+        if (sessionId is null || !sessionStore.DogrulaVeYenile(sessionId, idleTimeout))
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+    }
+    await next();
+});
+
 app.UseAuthorization();
 
 // Ilk admin kullanicisini seed et (Users tablosu bossa) - boylece login sistemi
@@ -415,7 +441,7 @@ app.MapPost("/api/arac-hareketleri/rapor-export", async (RaporExportRequest requ
 
 // ---------- Auth (login/session/token) ----------
 
-app.MapPost("/api/auth/login", async (LoginRequest request, SeyirMobilDbContext db, IConfiguration config) =>
+app.MapPost("/api/auth/login", async (LoginRequest request, SeyirMobilDbContext db, IConfiguration config, SessionStore sessionStore) =>
 {
     var user = await db.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
     if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
@@ -423,7 +449,10 @@ app.MapPost("/api/auth/login", async (LoginRequest request, SeyirMobilDbContext 
         return Results.Unauthorized();
     }
 
-    var (token, expiresAt) = JwtOlustur(user, config);
+    var sessionId = Guid.NewGuid().ToString("N");
+    sessionStore.OturumBaslat(sessionId);
+
+    var (token, expiresAt) = JwtOlustur(user, config, sessionId);
     return Results.Ok(new LoginResponse(token, expiresAt, user.Username, user.Role));
 })
 .WithName("Login");
@@ -436,6 +465,20 @@ app.MapGet("/api/auth/me", (ClaimsPrincipal principal) =>
     }))
 .RequireAuthorization()
 .WithName("GetCurrentUser");
+
+// Oturumu (token'in gomulu "sid"si uzerinden) sunucu tarafinda sonlandirir - istemcinin
+// kendi tarafinda token'i silmesinin yaninda, sunucu da idle-timeout tablosundan kaydi kaldirir.
+app.MapPost("/api/auth/logout", (ClaimsPrincipal principal, SessionStore sessionStore) =>
+{
+    var sessionId = principal.FindFirstValue("sid");
+    if (sessionId is not null)
+    {
+        sessionStore.OturumBitir(sessionId);
+    }
+    return Results.NoContent();
+})
+.RequireAuthorization()
+.WithName("Logout");
 
 // ---------- Kullanici yonetimi (Admin rolu zorunlu - self servis kayit YOK, kasitli) ----------
 
@@ -499,17 +542,18 @@ app.Run();
 
 // ---------- JWT uretimi (login endpoint'i kullanir) ----------
 
-static (string Token, DateTime ExpiresAt) JwtOlustur(User user, IConfiguration config)
+static (string Token, DateTime ExpiresAt) JwtOlustur(User user, IConfiguration config, string sessionId)
 {
     var jwtSection = config.GetSection("Jwt");
     var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["SecretKey"]!));
     var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-    var expiresAt = DateTime.UtcNow.AddMinutes(double.Parse(jwtSection["ExpiryMinutes"]!));
+    var expiresAt = DateTime.UtcNow.AddMinutes(double.Parse(jwtSection["ExpiryMinutes"]!, CultureInfo.InvariantCulture));
 
     var claims = new[]
     {
         new Claim(ClaimTypes.Name, user.Username),
-        new Claim(ClaimTypes.Role, user.Role)
+        new Claim(ClaimTypes.Role, user.Role),
+        new Claim("sid", sessionId)
     };
 
     var token = new JwtSecurityToken(

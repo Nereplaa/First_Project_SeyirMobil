@@ -178,11 +178,22 @@ web'de) ve mevcut ekranların girişe kilitlenmesi, bir sonraki aşamada ele al�
 
 ---
 
+## 2026-08-04 14:01 — Oturum Zaman Aşımı: Hareketsizlikte Otomatik Çıkış
+
+Giriş sistemine bir güvenlik katmanı daha eklendi: kullanıcı sistemde bir süre (5 dakika) hiçbir
+işlem yapmazsa oturumu otomatik olarak sona eriyor; sistemi aktif kullandığı sürece (herhangi bir
+ekranı açması, bir işlem yapması) oturumu kendiliğinden yenileniyor — ayrıca bir şey yapmasına
+gerek yok. Ayrıca kullanıcının isteğe bağlı olarak oturumu anında sonlandırabilmesi (çıkış yapma)
+için bir uç nokta eklendi.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
 - [x] Sayfalama ve Excel'e aktarma (web + masaüstü)
 - [x] Giriş (login) sistemi — backend altyapısı
+- [x] Oturum zaman aşımı (hareketsizlikte otomatik çıkış)
 - [ ] Giriş (login) sistemi — masaüstü ve web arayüzü
 - [ ] UI/UX iyileştirmeleri (DevExtreme ile)
 - [ ] Docker ile konteynerleştirme
