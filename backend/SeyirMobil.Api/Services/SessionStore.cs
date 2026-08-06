@@ -1,35 +1,59 @@
-using System.Collections.Concurrent;
+using Microsoft.EntityFrameworkCore;
+using SeyirMobil.Api.Data;
+using SeyirMobil.Api.Models;
 
 namespace SeyirMobil.Api.Services;
 
-// Aktif oturumlarin "son islem zamani"ni tutar - sliding idle timeout icin.
-// In-memory (tek backend instance varsayimi, bu projenin kapsaminda yeterli):
-// backend yeniden baslatilinca tum oturumlar sifirlanir, kullanicilarin tekrar
-// login olmasi gerekir - dahili/staj projesi icin kabul edilebilir bir sinirlama.
+// Aktif oturumlarin "son islem zamani"ni SQL Server'daki Sessions tablosunda tutar -
+// sliding idle timeout icin. Onceki in-memory (ConcurrentDictionary) halinin yerini alir:
+// artik backend yeniden baslatilsa bile (JWT hala gecerliyse) oturumlar hayatta kalir.
 public class SessionStore
 {
-    private readonly ConcurrentDictionary<string, DateTime> _sonIslemZamani = new();
+    private readonly SeyirMobilDbContext _db;
 
-    public void OturumBaslat(string sessionId) =>
-        _sonIslemZamani[sessionId] = DateTime.UtcNow;
+    public SessionStore(SeyirMobilDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task OturumBaslatAsync(string sessionId, int userId)
+    {
+        _db.Sessions.Add(new Session
+        {
+            Id = sessionId,
+            UserId = userId,
+            SonIslemZamani = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+    }
 
     // Oturum hala gecerliyse (bulundu VE bosta kalma suresini asmadiysa) son islem
     // zamanini simdiye guncelleyip true doner - her API cagrisi boylece oturumu yeniler.
-    public bool DogrulaVeYenile(string sessionId, TimeSpan bostaKalmaSiniri)
+    public async Task<bool> DogrulaVeYenileAsync(string sessionId, TimeSpan bostaKalmaSiniri)
     {
-        if (!_sonIslemZamani.TryGetValue(sessionId, out var sonIslem))
+        var session = await _db.Sessions.FirstOrDefaultAsync(s => s.Id == sessionId);
+        if (session is null)
         {
             return false;
         }
-        if (DateTime.UtcNow - sonIslem > bostaKalmaSiniri)
+        if (DateTime.UtcNow - session.SonIslemZamani > bostaKalmaSiniri)
         {
-            _sonIslemZamani.TryRemove(sessionId, out _);
+            _db.Sessions.Remove(session);
+            await _db.SaveChangesAsync();
             return false;
         }
-        _sonIslemZamani[sessionId] = DateTime.UtcNow;
+        session.SonIslemZamani = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
         return true;
     }
 
-    public void OturumBitir(string sessionId) =>
-        _sonIslemZamani.TryRemove(sessionId, out _);
+    public async Task OturumBitirAsync(string sessionId)
+    {
+        var session = await _db.Sessions.FindAsync(sessionId);
+        if (session is not null)
+        {
+            _db.Sessions.Remove(session);
+            await _db.SaveChangesAsync();
+        }
+    }
 }

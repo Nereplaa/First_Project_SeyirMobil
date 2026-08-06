@@ -9,7 +9,6 @@ import {
   RaporTopluRequestDto,
   AracRaporSonucuDto,
   AracHareketDetayRaporSatiriDto,
-  RaporExportRequestDto,
 } from '../models/arac-hareket.models';
 
 const API_BASE = 'http://localhost:5080/api/arac-hareketleri';
@@ -45,13 +44,5 @@ export class AracHareketApi {
 
   getDetayRaporu(request: RaporTopluRequestDto): Observable<AracHareketDetayRaporSatiriDto[]> {
     return this.http.post<AracHareketDetayRaporSatiriDto[]>(`${API_BASE}/rapor-detay`, request);
-  }
-
-  exportHareketler(hareketler: AracHareketDto[]): Observable<Blob> {
-    return this.http.post(`${API_BASE}/export`, hareketler, { responseType: 'blob' });
-  }
-
-  exportRapor(request: RaporExportRequestDto): Observable<Blob> {
-    return this.http.post(`${API_BASE}/rapor-export`, request, { responseType: 'blob' });
   }
 }

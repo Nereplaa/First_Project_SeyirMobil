@@ -149,12 +149,6 @@
     <div style="display: flex; gap: 0.5rem">
       <dx-button text="Yenile" type="normal" (onClick)="refreshGrid()"></dx-button>
       <dx-button text="Sil" type="danger" [disabled]="!seciliHareket()" (onClick)="sil()"></dx-button>
-      <dx-button
-        [text]="disaAktariliyor() ? 'Aktarılıyor…' : 'Excel\'e Aktar'"
-        type="normal"
-        [disabled]="disaAktariliyor()"
-        (onClick)="excelAktar()"
-      ></dx-button>
     </div>
   </div>
 
@@ -173,7 +167,9 @@
       showNavigationButtons: true
     }"
     [searchPanel]="{ visible: true, placeholder: 'Ara...' }"
+    [export]="{ enabled: true }"
     (onSelectionChanged)="onSelectionChanged($event)"
+    (onExporting)="onExporting($event)"
   ></dx-data-grid>
 
   <p class="status-text" style="margin-top: 0.75rem">{{ statusText() }}</p>

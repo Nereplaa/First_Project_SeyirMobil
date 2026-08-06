@@ -251,19 +251,66 @@ olarak saklandı, sadece yeni script'le geri alındı.
 
 ---
 
-## 2026-08-06 09:16 — Rapor Ekranındaki Sonuç Tabloları da DevExtreme'e Geçti, İkinci Geri Bildirim Turu
+## 2026-08-05 16:00 — Eren Bey ile İkinci Geri Bildirim Toplantısı
 
-Rapor ekranındaki iki sonuç tablosu (özet ve gün-gün detaylı rapor) de artık DevExtreme'in
-gelişmiş tablo bileşenini kullanıyor — web arayüzünde artık hiçbir yerde eski tip düz HTML
-tablo/form elemanı kalmadı, tamamı tutarlı bir bileşen kütüphanesi üzerinden geliyor.
+Eren bey ile 16:00-16:20 arası, mülakat tarzında (soru-cevap şeklinde) bir toplantı yapıldı.
+Toplantıda altı ayrı konu gündeme geldi: oturumun sunucu yeniden başlatılınca düşmemesi için
+kalıcı bir oturum takibi, bildirim/uyarı ekranlarının daha modern bir kütüphaneyle (SweetAlert)
+yenilenmesi, Excel'e aktarma sisteminin sadeleştirilmesi, Excel'den toplu veri içe aktarma, rol
+bazlı (yönetici/görüntüleyici) bir yönetici paneli ve kapsamlı bir kullanıcı hareket günlüğü
+(Graylog ile). Notlar toplantı sırasında alındı, sonraki adımlarda düzenlenecek.
 
-Eren bey ile ikinci, mülakat tarzında bir geri bildirim toplantısı yapıldı. Sonucunda 6 maddelik
-yeni bir iş listesi netleşti: oturumun sunucu yeniden başlatılınca düşmemesi için kalıcı bir
-oturum takibi, bildirim/uyarı ekranlarının daha modern bir kütüphaneyle (SweetAlert)
-yenilenmesi, Excel'e aktarma sisteminin sadeleştirilmesi, rol bazlı (yönetici/görüntüleyici) bir
-yönetici paneli, kapsamlı bir kullanıcı hareket günlüğü (Graylog + Docker ile) ve Excel'den toplu
-veri içe aktarma. Uygulama sırası birlikte kararlaştırıldı, ilk adıma başlamadan önce onay
-bekleniyor.
+---
+
+## 2026-08-05 16:45 — Toplantı Sonrası: Rapor Ekranı Grid'leri DevExtreme'e Taşındı, Kısa Araştırma
+
+Ofisten çıkmadan önce (17:00), toplantıda gündeme gelen konulardan birkaçı (SweetAlert, Graylog
+gibi) hakkında kısa bir ön araştırma yapıldı. Aynı zamanda rapor ekranındaki iki sonuç tablosu
+(özet ve gün-gün detaylı rapor) da DevExtreme'in gelişmiş tablo bileşenine taşındı — web
+arayüzünde artık hiçbir yerde eski tip düz HTML tablo/form elemanı kalmadı, tamamı tutarlı bir
+bileşen kütüphanesi üzerinden geliyor.
+
+---
+
+## 2026-08-06 09:16 — Toplantı Notları Temize Çekildi, Roadmap ve Uygulama Sırası Netleşti
+
+Toplantıdan alınan ham notlar düzenlenip yerel bir çalışma dosyasına yazıldı, ardından altı
+maddenin her biri netleştirildi: oturum kalıcılığı için SQL Server'da yeni bir tablo (Redis
+DEĞİL — artı/eksileri karşılaştırılıp karar verildi), Excel'e aktarmanın hem ana listede hem
+rapor ekranında DevExtreme'e taşınması, kullanıcı hareket günlüğü için gerçek Graylog altyapısı
+(bu vesileyle Docker konusu da gündeme alındı) ve Excel'den toplu veri içe aktarmanın hem web hem
+masaüstünde geliştirilmesi. Uygulama sırası birlikte kararlaştırıldı, ilk adıma (oturum
+kalıcılığı) başlamadan önce onay bekleniyor.
+
+---
+
+## 2026-08-06 09:54 — Oturum Bilgisi Artık Kalıcı: SQL Server'da Yeni Bir Tablo
+
+Yeni roadmap'in ilk maddesi tamamlandı. Daha önce kullanıcı oturumları sunucunun belleğinde
+tutuluyordu — bu da API her yeniden başlatıldığında (bakım, güncelleme, çökme gibi durumlarda)
+tüm kullanıcıların anında oturumdan atılıp yeniden giriş yapmak zorunda kalması anlamına
+geliyordu. Şimdi oturum bilgisi veritabanında yeni bir tabloda tutuluyor; API yeniden başlasa
+bile geçerli bir oturumu olan kullanıcılar sisteme giriş yapmaya devam edebiliyor. Gerçek bir
+yeniden başlatma testiyle doğrulandı.
+
+---
+
+## 2026-08-06 10:35 — Bildirim/Uyarı Ekranları SweetAlert ile Yenilendi
+
+Roadmap'in ikinci maddesi tamamlandı. Web arayüzündeki tüm tarayıcının kendi (sade, tek tip)
+uyarı/onay pencereleri kaldırıldı; yerine tutarlı, ikonlu ve markaya uygun görünen SweetAlert
+pencereleri geldi — hata, bilgilendirme ve "silmek istediğinize emin misiniz?" onayı için ayrı
+ayrı tasarlanmış üç görünüm.
+
+---
+
+## 2026-08-06 10:44 — Web'de Excel'e Aktarma Sadeleşti
+
+Roadmap'in üçüncü maddesi tamamlandı. Web arayüzündeki "Excel'e Aktar" artık tablo bileşeninin
+kendi yerleşik özelliği üzerinden, tamamen tarayıcıda çalışıyor — ayrı bir buton veya sunucu
+isteği gerekmiyor. Rapor ekranındaki eski "her plaka için ayrı bölüm mü, tek tabloda mı"
+seçeneği bu geçişle kayboldu, artık tek ve tutarlı bir düzen kullanılıyor. Masaüstü uygulamasının
+Excel'e aktarma özelliği bu değişiklikten etkilenmedi, eskisi gibi çalışmaya devam ediyor.
 
 ---
 
@@ -275,10 +322,10 @@ bekleniyor.
 - [x] Oturum zaman aşımı (hareketsizlikte otomatik çıkış)
 - [x] Giriş (login) sistemi — masaüstü ve web arayüzü
 - [x] UI/UX iyileştirmeleri (DevExtreme ile) — tüm web ekranları güncellendi (grid'ler dahil)
-- [ ] Oturum bilgisinin kalıcı (SQL Server tablosu) tutulması — **sıradaki adım**
-- [ ] Bildirim/uyarı ekranlarının SweetAlert ile yenilenmesi
-- [ ] Excel'e aktarmanın DevExtreme üzerinden sadeleştirilmesi
-- [ ] Yönetici paneli + rol bazlı yönlendirme
+- [x] Oturum bilgisinin kalıcı (SQL Server tablosu) tutulması
+- [x] Bildirim/uyarı ekranlarının SweetAlert ile yenilenmesi
+- [x] Excel'e aktarmanın DevExtreme üzerinden sadeleştirilmesi (web)
+- [ ] Yönetici paneli + rol bazlı yönlendirme — **sıradaki adım**
 - [ ] Docker ile konteynerleştirme + kullanıcı hareket günlüğü (Graylog)
 - [ ] Excel'den toplu veri içe aktarma (web + masaüstü)
 - [ ] Üst menü/sekme yapısının DevExtreme'e taşınması (isteğe bağlı, henüz yapılmadı)

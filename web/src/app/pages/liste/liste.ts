@@ -7,7 +7,10 @@ import {
   DxCheckBoxModule,
   DxButtonModule,
 } from 'devextreme-angular';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+import { Workbook } from 'exceljs';
 import { AracHareketApi } from '../../services/arac-hareket-api';
+import { Bildirim } from '../../services/bildirim';
 import {
   AracHareketDto,
   AracPlakaLookupDto,
@@ -54,13 +57,13 @@ function isoToTarih(iso: string): Date {
 })
 export class Liste implements OnInit {
   private readonly api = inject(AracHareketApi);
+  private readonly bildirim = inject(Bildirim);
 
   // ---------- Ana liste ----------
   tumHareketler = signal<AracHareketDto[]>([]);
   gosterilenHareketler = signal<AracHareketDto[]>([]);
   seciliHareket = signal<AracHareketDto | null>(null);
   statusText = signal('');
-  disaAktariliyor = signal(false);
 
   // ---------- DevExtreme DataGrid ----------
   // Sayfalama/siralama/arama artik dx-data-grid'in KENDI ic mekanizmasi tarafindan
@@ -143,17 +146,17 @@ export class Liste implements OnInit {
           return;
         }
         this.statusText.set('Veri yüklenemedi.');
-        alert(`Araç hareketleri alınamadı. Backend API çalışıyor mu?\n\nHata: ${err.message}`);
+        this.bildirim.hata(`Araç hareketleri alınamadı. Backend API çalışıyor mu?\n\nHata: ${err.message}`);
       },
     });
   }
 
-  sil(): void {
+  async sil(): Promise<void> {
     const secili = this.seciliHareket();
     if (!secili) {
       return;
     }
-    const onay = confirm(
+    const onay = await this.bildirim.onaylaSil(
       `"${secili.aracPlaka}" - ${this.formatTarih(secili.veriTarihi)} tarihli kaydı silmek istediğine emin misin?`
     );
     if (!onay) {
@@ -171,7 +174,7 @@ export class Liste implements OnInit {
           return;
         }
         this.statusText.set('Silme başarısız.');
-        alert(`Kayıt silinemedi.\n\nHata: ${err.message}`);
+        this.bildirim.hata(`Kayıt silinemedi.\n\nHata: ${err.message}`);
       },
     });
   }
@@ -183,7 +186,7 @@ export class Liste implements OnInit {
       next: (plakalar) => this.plakalar.set(plakalar),
       error: (err) => {
         if (!oturumHatasiMi(err)) {
-          alert(`Plaka listesi alınamadı.\n\nHata: ${err.message}`);
+          this.bildirim.hata(`Plaka listesi alınamadı.\n\nHata: ${err.message}`);
         }
       },
     });
@@ -283,7 +286,7 @@ export class Liste implements OnInit {
         }
         this.sinirlarHesaplaniyor.set(false);
         this.statusText.set('Sınırlar hesaplanamadı.');
-        alert(`Sınırlar hesaplanamadı.\n\nHata: ${err.message}`);
+        this.bildirim.hata(`Sınırlar hesaplanamadı.\n\nHata: ${err.message}`);
       },
     });
   }
@@ -294,7 +297,7 @@ export class Liste implements OnInit {
       return;
     }
     if (this.wizardKm < this.kmMin() || this.wizardKm > this.kmMax()) {
-      alert(`Km sayacı ${this.kmMin().toFixed(2)} ile ${this.kmMax().toFixed(2)} arasında olmalı.`);
+      this.bildirim.hata(`Km sayacı ${this.kmMin().toFixed(2)} ile ${this.kmMax().toFixed(2)} arasında olmalı.`);
       return;
     }
 
@@ -322,7 +325,7 @@ export class Liste implements OnInit {
             return;
           }
           this.statusText.set('Ekleme başarısız.');
-          alert(`Kayıt eklenemedi.\n\nHata: ${err.message}`);
+          this.bildirim.hata(`Kayıt eklenemedi.\n\nHata: ${err.message}`);
         },
       });
   }
@@ -389,27 +392,21 @@ export class Liste implements OnInit {
     this.statusText.set(`${this.tumHareketler().length} hareket kaydı yüklendi.`);
   }
 
-  // ---------- Excel'e Aktar ----------
+  // ---------- Excel'e Aktar (DevExtreme dx-data-grid'in kendi export'u, tarayicida ureterek) ----------
 
-  excelAktar(): void {
-    const satirlar = this.gosterilenHareketler();
-    if (satirlar.length === 0) {
-      alert('Aktarılacak kayıt yok.');
-      return;
-    }
-    this.disaAktariliyor.set(true);
-    this.api.exportHareketler(satirlar).subscribe({
-      next: (blob) => {
-        dosyaIndir(blob, 'arac-hareketleri.xlsx');
-        this.disaAktariliyor.set(false);
-      },
-      error: (err) => {
-        this.disaAktariliyor.set(false);
-        if (oturumHatasiMi(err)) {
-          return;
-        }
-        alert(`Excel'e aktarılamadı.\n\nHata: ${err.message}`);
-      },
+  // Grid'in kendi "export" toolbar ikonuna basilinca tetiklenir. Backend'e hic gitmiyor -
+  // exportDataGrid grid'in O AN GORUNEN (filtreli/siralanmis) verisini dogrudan ExcelJS
+  // Workbook'una yaziyor, sonuc buffer'i mevcut dosyaIndir() yardimcisiyla indiriliyor.
+  onExporting(e: { component: unknown }): void {
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet('Araç Hareketleri');
+    exportDataGrid({ component: e.component as never, worksheet }).then(() => {
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        dosyaIndir(
+          new Blob([buffer], { type: 'application/octet-stream' }),
+          'arac-hareketleri.xlsx'
+        );
+      });
     });
   }
 

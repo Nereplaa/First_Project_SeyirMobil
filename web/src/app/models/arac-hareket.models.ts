@@ -51,10 +51,3 @@ export interface AracHareketDetayRaporSatiriDto {
   artis: number | null;
 }
 
-export interface RaporExportRequestDto {
-  plakalar: string[];
-  baslangic: string;
-  bitis: string;
-  detayliMi: boolean;
-  ayriPlakaBazliMi: boolean;
-}

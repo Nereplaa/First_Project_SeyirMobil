@@ -53,29 +53,6 @@
         (onClick)="raporOlustur()"
       ></dx-button>
     </div>
-
-    <div class="field">
-      <label for="exportModu">Excel Yapısı</label>
-      <dx-select-box
-        id="exportModu"
-        [dataSource]="exportModuSecenekleri"
-        displayExpr="metin"
-        valueExpr="deger"
-        [value]="exportModu"
-        (onValueChanged)="exportModu = $event.value"
-        width="220"
-      ></dx-select-box>
-    </div>
-
-    <div class="field">
-      <label>&nbsp;</label>
-      <dx-button
-        [text]="disaAktariliyor() ? 'Aktarılıyor…' : 'Excel\'e Aktar'"
-        type="normal"
-        [disabled]="!raporOlusturEtkin() || disaAktariliyor()"
-        (onClick)="excelAktar()"
-      ></dx-button>
-    </div>
   </div>
 
   <p class="status-text" style="margin-top: 0.75rem">{{ statusText() }}</p>
@@ -89,6 +66,8 @@
       [showBorders]="true"
       [rowAlternationEnabled]="true"
       [searchPanel]="{ visible: true, placeholder: 'Ara...' }"
+      [export]="{ enabled: true }"
+      (onExporting)="onExportingOzet($event)"
     ></dx-data-grid>
   </section>
 }
@@ -103,6 +82,8 @@
       [paging]="{ pageSize: 25 }"
       [pager]="{ visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100], showInfo: true }"
       [searchPanel]="{ visible: true, placeholder: 'Ara...' }"
+      [export]="{ enabled: true }"
+      (onExporting)="onExportingDetay($event)"
     ></dx-data-grid>
   </section>
 }

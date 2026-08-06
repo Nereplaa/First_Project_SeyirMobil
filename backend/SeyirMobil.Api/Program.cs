@@ -69,7 +69,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
-builder.Services.AddSingleton<SessionStore>();
+// Scoped (Singleton degil): SessionStore artik Sessions tablosuna yazmak icin
+// SeyirMobilDbContext'e ihtiyac duyuyor, DbContext'in kendisi de scoped (istek basina).
+builder.Services.AddScoped<SessionStore>();
 
 var app = builder.Build();
 
@@ -95,7 +97,7 @@ app.Use(async (context, next) =>
     {
         var sessionStore = context.RequestServices.GetRequiredService<SessionStore>();
         var sessionId = context.User.FindFirstValue("sid");
-        if (sessionId is null || !sessionStore.DogrulaVeYenile(sessionId, idleTimeout))
+        if (sessionId is null || !await sessionStore.DogrulaVeYenileAsync(sessionId, idleTimeout))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
@@ -436,7 +438,7 @@ app.MapPost("/api/auth/login", async (LoginRequest request, SeyirMobilDbContext 
     }
 
     var sessionId = Guid.NewGuid().ToString("N");
-    sessionStore.OturumBaslat(sessionId);
+    await sessionStore.OturumBaslatAsync(sessionId, user.Id);
 
     var (token, expiresAt) = JwtOlustur(user, config, sessionId);
     return Results.Ok(new LoginResponse(token, expiresAt, user.Username, user.Role));
@@ -454,12 +456,12 @@ app.MapGet("/api/auth/me", (ClaimsPrincipal principal) =>
 
 // Oturumu (token'in gomulu "sid"si uzerinden) sunucu tarafinda sonlandirir - istemcinin
 // kendi tarafinda token'i silmesinin yaninda, sunucu da idle-timeout tablosundan kaydi kaldirir.
-app.MapPost("/api/auth/logout", (ClaimsPrincipal principal, SessionStore sessionStore) =>
+app.MapPost("/api/auth/logout", async (ClaimsPrincipal principal, SessionStore sessionStore) =>
 {
     var sessionId = principal.FindFirstValue("sid");
     if (sessionId is not null)
     {
-        sessionStore.OturumBitir(sessionId);
+        await sessionStore.OturumBitirAsync(sessionId);
     }
     return Results.NoContent();
 })

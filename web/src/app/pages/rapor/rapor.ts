@@ -3,11 +3,13 @@ import {
   DxDateRangeBoxModule,
   DxTagBoxModule,
   DxCheckBoxModule,
-  DxSelectBoxModule,
   DxButtonModule,
   DxDataGridModule,
 } from 'devextreme-angular';
+import { exportDataGrid } from 'devextreme/excel_exporter';
+import { Workbook } from 'exceljs';
 import { AracHareketApi } from '../../services/arac-hareket-api';
+import { Bildirim } from '../../services/bildirim';
 import {
   AracPlakaLookupDto,
   AracRaporSonucuDto,
@@ -49,7 +51,6 @@ function isoToTarih(iso: string): Date {
     DxDateRangeBoxModule,
     DxTagBoxModule,
     DxCheckBoxModule,
-    DxSelectBoxModule,
     DxButtonModule,
     DxDataGridModule,
   ],
@@ -58,6 +59,7 @@ function isoToTarih(iso: string): Date {
 })
 export class Rapor implements OnInit {
   private readonly api = inject(AracHareketApi);
+  private readonly bildirim = inject(Bildirim);
 
   // ---------- DevExtreme DataGrid kolonlari (ozet + detayli rapor) ----------
   readonly ozetColumns = [
@@ -152,14 +154,6 @@ export class Rapor implements OnInit {
   yukleniyor = signal(false);
   statusText = signal('');
 
-  // ---------- Excel'e Aktar ----------
-  readonly exportModuSecenekleri = [
-    { deger: 'ayri' as const, metin: 'Her plaka için ayrı bölüm' },
-    { deger: 'tumu' as const, metin: 'Tüm plakalar tek tabloda' },
-  ];
-  exportModu: 'ayri' | 'tumu' = 'ayri';
-  disaAktariliyor = signal(false);
-
   raporOlusturEtkin = computed(() => this.seciliPlakalar().length > 0 && this.bitis > this.baslangic);
 
   ngOnInit(): void {
@@ -167,7 +161,7 @@ export class Rapor implements OnInit {
       next: (plakalar) => this.plakalar.set(plakalar),
       error: (err) => {
         if (!oturumHatasiMi(err)) {
-          alert(`Araç listesi alınamadı.\n\nHata: ${err.message}`);
+          this.bildirim.hata(`Araç listesi alınamadı.\n\nHata: ${err.message}`);
         }
       },
     });
@@ -220,39 +214,30 @@ export class Rapor implements OnInit {
       return;
     }
     this.statusText.set('Rapor oluşturulamadı.');
-    alert(`Rapor oluşturulamadı.\n\nHata: ${err.message}`);
+    this.bildirim.hata(`Rapor oluşturulamadı.\n\nHata: ${err.message}`);
   }
 
-  excelAktar(): void {
-    if (!this.raporOlusturEtkin()) {
-      return;
-    }
-    this.disaAktariliyor.set(true);
-    this.statusText.set('Excel oluşturuluyor...');
-    this.api
-      .exportRapor({
-        plakalar: this.seciliPlakalar(),
-        baslangic: this.baslangic,
-        bitis: this.bitis,
-        detayliMi: this.detayliRapor,
-        ayriPlakaBazliMi: this.exportModu === 'ayri',
-      })
-      .subscribe({
-        next: (blob) => {
-          const modAdi = this.detayliRapor ? 'detayli' : 'ozet';
-          dosyaIndir(blob, `rapor-${modAdi}.xlsx`);
-          this.disaAktariliyor.set(false);
-          this.statusText.set('Excel dosyası indirildi.');
-        },
-        error: (err) => {
-          this.disaAktariliyor.set(false);
-          if (oturumHatasiMi(err)) {
-            return;
-          }
-          this.statusText.set('Excel\'e aktarılamadı.');
-          alert(`Excel'e aktarılamadı.\n\nHata: ${err.message}`);
-        },
+  // ---------- Excel'e Aktar (DevExtreme dx-data-grid'in kendi export'u, tarayicida ureterek) ----------
+  // Backend'e hic gitmiyor - eski ClosedXML "her plaka icin ayri bolum" ozel bicimlendirmesi
+  // (exportModu secimi) bu yuzden kayboldu, DevExtreme grid export'u TEK duz tablo uretiyor
+  // (kullanici onayli sadelesme, bkz. AI_NOTES/decisions.md).
+
+  onExportingOzet(e: { component: unknown }): void {
+    this.gridDenIndir(e, 'Özet Rapor', 'rapor-ozet.xlsx');
+  }
+
+  onExportingDetay(e: { component: unknown }): void {
+    this.gridDenIndir(e, 'Detaylı Rapor', 'rapor-detay.xlsx');
+  }
+
+  private gridDenIndir(e: { component: unknown }, sayfaAdi: string, dosyaAdi: string): void {
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet(sayfaAdi);
+    exportDataGrid({ component: e.component as never, worksheet }).then(() => {
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        dosyaIndir(new Blob([buffer], { type: 'application/octet-stream' }), dosyaAdi);
       });
+    });
   }
 
   formatTarih(iso: string | null): string {

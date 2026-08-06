@@ -9,4 +9,5 @@ public class SeyirMobilDbContext : DbContext
 
     public DbSet<AracHareket> AracHareketleri => Set<AracHareket>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Session> Sessions => Set<Session>();
 }

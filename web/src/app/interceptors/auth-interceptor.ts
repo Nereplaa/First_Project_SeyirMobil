@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 import { Auth } from '../services/auth';
+import { Bildirim } from '../services/bildirim';
 
 // Login istegi (henuz token yokken cagrilir) haric, tum isteklere Authorization header'i
 // ekler. 401 donen bir istek (idle-timeout veya baska bir nedenle oturum gecersiz oldu)
@@ -13,6 +14,7 @@ const TOKEN_GEREKMEYEN_YOLLAR = ['/api/auth/login'];
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(Auth);
   const router = inject(Router);
+  const bildirim = inject(Bildirim);
 
   const tokenGerekmiyor = TOKEN_GEREKMEYEN_YOLLAR.some((yol) => req.url.includes(yol));
   const token = auth.token();
@@ -31,7 +33,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         const oturumZatenAcikti = !!auth.token();
         auth.oturumuTemizle();
         if (oturumZatenAcikti) {
-          alert('Oturum süreniz doldu veya geçersiz. Lütfen tekrar giriş yapın.');
+          bildirim.bilgi('Oturum süreniz doldu veya geçersiz. Lütfen tekrar giriş yapın.');
         }
         router.navigate(['/login']);
       }
