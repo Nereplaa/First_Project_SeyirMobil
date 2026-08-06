@@ -1,0 +1,13 @@
+.dosya-hatasi-banner {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #991b1b;
+}
+
+.dosya-hatasi-banner p {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+}

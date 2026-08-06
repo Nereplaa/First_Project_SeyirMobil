@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   DxDataGridModule,
   DxSelectBoxModule,
@@ -11,6 +12,7 @@ import { exportDataGrid } from 'devextreme/excel_exporter';
 import { Workbook } from 'exceljs';
 import { AracHareketApi } from '../../services/arac-hareket-api';
 import { Bildirim } from '../../services/bildirim';
+import { ImportDosyaKoprusu } from '../../services/import-dosya-koprusu';
 import {
   AracHareketDto,
   AracPlakaLookupDto,
@@ -57,6 +59,8 @@ function isoToTarih(iso: string): Date {
 })
 export class Liste implements OnInit {
   private readonly api = inject(AracHareketApi);
+  private readonly router = inject(Router);
+  private readonly importDosyaKoprusu = inject(ImportDosyaKoprusu);
   private readonly bildirim = inject(Bildirim);
 
   // ---------- Ana liste ----------
@@ -413,5 +417,19 @@ export class Liste implements OnInit {
   formatTarih(iso: string): string {
     const [y, m, d] = iso.split('-');
     return `${d}.${m}.${y}`;
+  }
+
+  // "Excel'den Veri Aktar" kısayolu: dosyayı burada seçip doğrudan /import ekranına
+  // yönlendiriyor - kullanıcının önce Import sayfasına gidip ORADA tekrar dosya seçmesine
+  // gerek kalmıyor (gerçek kullanıcı geri bildirimi: "iki ayrı adım kafa karıştırıcı").
+  excelDenAktarSecildi(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const dosya = input.files?.[0];
+    input.value = ''; // ayni dosya tekrar secilse bile (change) yine tetiklensin diye
+    if (!dosya) {
+      return;
+    }
+    this.importDosyaKoprusu.bekleyenDosya = dosya;
+    this.router.navigateByUrl('/import');
   }
 }

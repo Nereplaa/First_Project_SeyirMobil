@@ -122,6 +122,44 @@ public class AracHareketApiClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task<ImportOnizlemeYanitiDto> ImportOnizleAsync(string dosyaYolu)
+    {
+        using var form = new MultipartFormDataContent();
+        await using var stream = File.OpenRead(dosyaYolu);
+        using var dosyaIcerik = new StreamContent(stream);
+        form.Add(dosyaIcerik, "dosya", Path.GetFileName(dosyaYolu));
+
+        var response = await _http.PostAsync("api/arac-hareketleri/import-onizleme", form);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(await OkuHataMesajiAsync(response));
+        }
+        var result = await response.Content.ReadFromJsonAsync<ImportOnizlemeYanitiDto>();
+        return result ?? new ImportOnizlemeYanitiDto([]);
+    }
+
+    public async Task<ImportOnizlemeYanitiDto> ImportYenidenDogrulaAsync(List<ImportHamSatirDto> satirlar)
+    {
+        var response = await _http.PostAsJsonAsync("api/arac-hareketleri/import-yeniden-dogrula", new ImportYenidenDogrulaRequestDto(satirlar));
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(await OkuHataMesajiAsync(response));
+        }
+        var result = await response.Content.ReadFromJsonAsync<ImportOnizlemeYanitiDto>();
+        return result ?? new ImportOnizlemeYanitiDto([]);
+    }
+
+    public async Task<ImportOnaylaSonucDto> ImportOnaylaAsync(List<ImportOnaylaSatiriDto> satirlar)
+    {
+        var response = await _http.PostAsJsonAsync("api/arac-hareketleri/import-onayla", new ImportOnaylaRequestDto(satirlar));
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException(await OkuHataMesajiAsync(response));
+        }
+        var result = await response.Content.ReadFromJsonAsync<ImportOnaylaSonucDto>();
+        return result ?? new ImportOnaylaSonucDto(0, 0, 0);
+    }
+
     private static async Task<string> OkuHataMesajiAsync(HttpResponseMessage response)
     {
         try

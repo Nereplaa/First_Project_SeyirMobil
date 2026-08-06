@@ -34,14 +34,35 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
 
 | Katman | Teknoloji |
 |---|---|
-| Veritabanı | SQL Server 2025 Express |
+| Veritabanı | SQL Server (Docker container) |
 | Backend / API | ASP.NET Core Web API (.NET 10) |
 | ORM | Entity Framework Core |
 | Masaüstü istemci | WinForms (C#) |
 | Web istemci | Angular 22 (SPA) |
-| Excel export | ClosedXML (MIT, backend'de üretilir) |
-| UI komponentleri (ileride) | DevExtreme (ticari lisans — kurumla görüşülecek) |
-| Dağıtım (ileride) | Docker (planlanıyor) |
+| Auth | JWT + BCrypt, sliding idle-timeout, oturumlar SQL Server'da kalıcı |
+| UI komponentleri | DevExtreme (Angular entegrasyonu) |
+| Bildirim/uyarı pencereleri | SweetAlert2 |
+| Excel export | ClosedXML (backend, masaüstü) / DevExtreme'in kendi export'u (web) |
+| Merkezi log takibi | Graylog + MongoDB + OpenSearch, backend'de Serilog |
+| Dağıtım / geliştirme ortamı | Docker Compose |
+
+## Nasıl Çalıştırılır
+
+Tüm sistem (veritabanı, backend, web, log altyapısı) tek bir komutla ayağa kalkar:
+
+```
+docker compose up -d
+```
+
+- Web: http://localhost:4200
+- Backend API (Swagger): http://localhost:5080/swagger
+- Log arayüzü (Graylog): http://localhost:9000 (`admin` / `Admin123!`)
+
+İlk çalıştırmada veritabanı şemasının `database/` altındaki script'lerle (001'den başlayarak
+sırayla, `sqlserver` container'ına) kurulması, ayrıca Graylog'da bir GELF UDP input'unun
+(port 12201, Graylog arayüzünden veya `POST /api/system/inputs` ile) oluşturulması gerekir.
+Masaüstü istemci (WinForms) Docker'a dahil değildir, ayrıca `desktop/SeyirMobil.Desktop`
+üzerinden çalıştırılır.
 
 ## Güncel Durum
 
@@ -63,8 +84,17 @@ SQL Server'a erişir. İstemciler API'yi HTTP ile çağırır.
   rapor özet+detaylı) aynı backend API üzerinden web'de de çalışıyor. Görsel/arayüz geliştirmesi
   bir sonraki aşamada.
 - ✅ Araç hareketleri listesine sayfalama eklendi (sayfa başına kayıt sayısı seçilebiliyor), hem
-  web hem masaüstünde. Liste ve rapor ekranlarına Excel'e aktarma eklendi — filtre uygulanmışsa
-  sadece filtrelenmiş sonuçlar, rapor ekranında araç başına ayrı bölüm veya tek tablo seçenekli.
+  web hem masaüstünde. Liste ve rapor ekranlarına Excel'e aktarma eklendi.
+- ✅ Giriş (login) sistemi: JWT + rol bazlı yetkilendirme (Admin/Viewer), hem web hem masaüstünde.
+  Oturumlar artık SQL Server'da kalıcı — sunucu yeniden başlasa bile kullanıcılar oturumdan atılmıyor.
+- ✅ Web arayüzü tamamen DevExtreme bileşenlerine geçirildi (grid, tarih seçici, form alanları) ve
+  bildirim/uyarı pencereleri SweetAlert2 ile yenilendi.
+- ✅ Yönetici Paneli: kullanıcı hesapları buradan görüntülenip eklenip silinebiliyor, roller
+  genişleyebilecek bir yapıda yönetiliyor.
+- ✅ Tüm sistem Docker Compose ile konteynerleştirildi, merkezi log takibi (Graylog) eklendi —
+  backend API çağrıları ve web'deki tüm etkileşimler kaydediliyor.
+- ✅ Excel'den toplu veri girişi (hem web hem masaüstü) — dosya yüklenip doğrulanıyor, hatalı
+  satırlar düzenlenebiliyor, çakışan kayıtlar için kullanıcı karar veriyor.
 
 Detaylı ilerleme için bkz. [TIMELINE.md](TIMELINE.md).
 
@@ -79,13 +109,17 @@ Backend, masaüstü, web ve veritabanı katmanları en üst seviyede net şekild
 │   ├── 003_create_arac_hareketleri_table.sql
 │   ├── 004_seed_arac_hareketleri_dummy_data.sql
 │   ├── 005_create_users_table.sql
-│   └── 006_drop_vehicles_table.sql
+│   ├── 006_drop_vehicles_table.sql
+│   └── 007_create_sessions_table.sql
 ├── backend/
 │   └── SeyirMobil.Api/          ← ASP.NET Core Web API + EF Core (tüm iş mantığı, DB erişimi)
+│       └── Dockerfile
 ├── desktop/
 │   └── SeyirMobil.Desktop/      ← WinForms masaüstü istemcisi (araç hareketleri listesi + rapor)
 ├── web/
-│   └── seyir-mobil-web/         ← Angular web istemcisi (aynı backend API'yi kullanır)
+│   ├── src/                     ← Angular web istemcisi kaynak kodu (aynı backend API'yi kullanır)
+│   └── Dockerfile
+├── docker-compose.yml            ← tüm sistemi (DB + backend + web + log altyapısı) ayağa kaldırır
 ├── SeyirMobil.slnx               ← .NET solution (backend + desktop projelerini kapsar)
 ├── README.md
 └── TIMELINE.md

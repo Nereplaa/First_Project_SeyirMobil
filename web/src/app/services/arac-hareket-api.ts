@@ -9,6 +9,10 @@ import {
   RaporTopluRequestDto,
   AracRaporSonucuDto,
   AracHareketDetayRaporSatiriDto,
+  ImportHamSatirDto,
+  ImportOnizlemeYanitiDto,
+  ImportOnaylaSatiriDto,
+  ImportOnaylaSonucDto,
 } from '../models/arac-hareket.models';
 
 const API_BASE = 'http://localhost:5080/api/arac-hareketleri';
@@ -44,5 +48,23 @@ export class AracHareketApi {
 
   getDetayRaporu(request: RaporTopluRequestDto): Observable<AracHareketDetayRaporSatiriDto[]> {
     return this.http.post<AracHareketDetayRaporSatiriDto[]>(`${API_BASE}/rapor-detay`, request);
+  }
+
+  importOnizle(dosya: File): Observable<ImportOnizlemeYanitiDto> {
+    const formData = new FormData();
+    formData.append('dosya', dosya);
+    return this.http.post<ImportOnizlemeYanitiDto>(`${API_BASE}/import-onizleme`, formData);
+  }
+
+  importYenidenDogrula(satirlar: ImportHamSatirDto[]): Observable<ImportOnizlemeYanitiDto> {
+    return this.http.post<ImportOnizlemeYanitiDto>(`${API_BASE}/import-yeniden-dogrula`, { satirlar });
+  }
+
+  importOnayla(satirlar: ImportOnaylaSatiriDto[]): Observable<ImportOnaylaSonucDto> {
+    return this.http.post<ImportOnaylaSonucDto>(`${API_BASE}/import-onayla`, { satirlar });
+  }
+
+  importSablonIndir(): Observable<Blob> {
+    return this.http.get(`${API_BASE}/import-sablon`, { responseType: 'blob' });
   }
 }

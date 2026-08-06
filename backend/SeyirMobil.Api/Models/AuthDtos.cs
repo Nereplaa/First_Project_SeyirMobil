@@ -7,3 +7,5 @@ public record LoginResponse(string Token, DateTime ExpiresAt, string Username, s
 public record CreateUserRequest(string Username, string Password, string Role);
 
 public record UserSummary(int Id, string Username, string Role, DateTime OlusturmaTarihi);
+
+public record FrontendLogRequest(string Eylem, string? Detay, string Sayfa);

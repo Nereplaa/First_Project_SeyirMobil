@@ -39,6 +39,7 @@ partial class AracHareketleriForm
     private System.Windows.Forms.Button btnYenile;
     private System.Windows.Forms.Button btnHareketRaporu;
     private System.Windows.Forms.Button btnExcelAktar;
+    private System.Windows.Forms.Button btnExcelIceAktar;
     private System.Windows.Forms.Button btnCikisYap;
 
     private System.Windows.Forms.FlowLayoutPanel flowFiltre;
@@ -87,6 +88,7 @@ partial class AracHareketleriForm
         this.btnYenile = new System.Windows.Forms.Button();
         this.btnHareketRaporu = new System.Windows.Forms.Button();
         this.btnExcelAktar = new System.Windows.Forms.Button();
+        this.btnExcelIceAktar = new System.Windows.Forms.Button();
         this.btnCikisYap = new System.Windows.Forms.Button();
         this.flowFiltre = new System.Windows.Forms.FlowLayoutPanel();
         this.lblFiltreBaslik = new System.Windows.Forms.Label();
@@ -170,6 +172,7 @@ partial class AracHareketleriForm
         this.flowUst.Controls.Add(this.btnYenile);
         this.flowUst.Controls.Add(this.btnHareketRaporu);
         this.flowUst.Controls.Add(this.btnExcelAktar);
+        this.flowUst.Controls.Add(this.btnExcelIceAktar);
         this.flowUst.Controls.Add(this.btnCikisYap);
         this.flowUst.Name = "flowUst";
         this.flowUst.TabIndex = 0;
@@ -353,6 +356,16 @@ partial class AracHareketleriForm
         this.btnExcelAktar.Text = "Excel'e Aktar";
         this.btnExcelAktar.UseVisualStyleBackColor = true;
         this.btnExcelAktar.Click += new System.EventHandler(this.btnExcelAktar_Click);
+        //
+        // btnExcelIceAktar
+        //
+        this.btnExcelIceAktar.Margin = new System.Windows.Forms.Padding(3, 26, 3, 3);
+        this.btnExcelIceAktar.Name = "btnExcelIceAktar";
+        this.btnExcelIceAktar.Size = new System.Drawing.Size(140, 30);
+        this.btnExcelIceAktar.TabIndex = 10;
+        this.btnExcelIceAktar.Text = "Excel'den İçe Aktar...";
+        this.btnExcelIceAktar.UseVisualStyleBackColor = true;
+        this.btnExcelIceAktar.Click += new System.EventHandler(this.btnExcelIceAktar_Click);
         //
         // btnCikisYap
         //

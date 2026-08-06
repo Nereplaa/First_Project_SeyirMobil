@@ -1,0 +1,71 @@
+<section class="card">
+  <h2>Excel'den Toplu Veri Girişi</h2>
+  <p class="status-text">
+    Sütunlar sırasıyla: <strong>AracPlaka, VeriTarihi, Hiz, KmSayaci</strong> (ilk satır başlık,
+    tam bu isimlerle). Plaka sistemde yoksa otomatik yeni araç olarak eklenir. Emin değilseniz
+    önce şablonu indirip onun üzerinden doldurun.
+  </p>
+  <div class="field-row">
+    <dx-file-uploader
+      selectButtonText="Excel Dosyası Seç"
+      labelText=""
+      accept=".xlsx"
+      uploadMode="useForm"
+      [showFileList]="false"
+      [multiple]="false"
+      (onValueChanged)="dosyaSecildi($event)"
+    ></dx-file-uploader>
+    <dx-button text="Şablon İndir" type="normal" stylingMode="outlined" (onClick)="sablonIndir()"></dx-button>
+  </div>
+
+  @if (yukleniyor() && satirlar().length === 0 && !dosyaHatasi()) {
+    <p class="status-text">Dosya okunuyor ve doğrulanıyor…</p>
+  }
+
+  @if (dosyaHatasi()) {
+    <div class="dosya-hatasi-banner">
+      <strong>Bu dosya işlenemedi</strong>
+      <p>{{ dosyaHatasi() }}</p>
+    </div>
+  }
+</section>
+
+@if (satirlar().length > 0) {
+  <section class="card">
+    <div class="field-row" style="justify-content: space-between; margin-bottom: 0.75rem">
+      <h2 style="margin: 0">Önizleme ({{ toplamSatir() }} satır)</h2>
+      <div style="display: flex; gap: 0.5rem">
+        <dx-button
+          [text]="yukleniyor() ? 'Doğrulanıyor…' : 'Yeniden Doğrula'"
+          type="normal"
+          [disabled]="yukleniyor() || onaylaniyor()"
+          (onClick)="yenidenDogrula()"
+        ></dx-button>
+        <dx-button
+          [text]="onaylaniyor() ? 'Aktarılıyor…' : 'İçe Aktar'"
+          type="default"
+          [disabled]="!hepsiGecerliMi() || yukleniyor() || onaylaniyor()"
+          (onClick)="iceAktar()"
+        ></dx-button>
+      </div>
+    </div>
+
+    <dx-data-grid
+      [dataSource]="satirlar()"
+      [columns]="columns"
+      [showBorders]="true"
+      [wordWrapEnabled]="true"
+      [columnAutoWidth]="true"
+      [editing]="{ mode: 'cell', allowUpdating: true }"
+      (onSaved)="gridKaydedildi()"
+      (onRowPrepared)="onRowPrepared($event)"
+    ></dx-data-grid>
+
+    @if (!hepsiGecerliMi()) {
+      <p class="error-text" style="margin-top: 0.5rem">
+        İçe aktarmadan önce tüm satırların hatasız olması ve çakışan satırlar için bir aksiyon
+        (Üzerine Yaz / Atla) seçilmiş olması gerekiyor.
+      </p>
+    }
+  </section>
+}

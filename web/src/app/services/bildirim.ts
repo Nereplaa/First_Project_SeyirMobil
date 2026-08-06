@@ -38,4 +38,19 @@ export class Bildirim {
     });
     return sonuc.isConfirmed;
   }
+
+  // onaylaSil'in genel (silme'ye ozel olmayan) hali - "Evet" / "Vazgec" butonlariyla.
+  async onayla(mesaj: string): Promise<boolean> {
+    const sonuc = await Swal.fire({
+      icon: 'question',
+      title: 'Onaylıyor musunuz?',
+      text: mesaj,
+      showCancelButton: true,
+      confirmButtonText: 'Evet',
+      cancelButtonText: 'Vazgeç',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#6b7280',
+    });
+    return sonuc.isConfirmed;
+  }
 }

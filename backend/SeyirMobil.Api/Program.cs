@@ -7,12 +7,29 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using Serilog;
+using Serilog.Sinks.Graylog;
 using SeyirMobil.Api.Data;
 using SeyirMobil.Api.Models;
 using SeyirMobil.Api.Services;
 using SeyirMobil.Api.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Merkezi log toplama (Madde 5, Eren bey 2. geri bildirimi, 2026-08-06): tum API cagrilari
+// konsola YANI SIRA Graylog'a da (GELF/UDP, docker-compose'daki "graylog" servisi) gonderiliyor.
+// "Graylog:Host" appsettings.json'da yoksa varsayilan "graylog" - docker-compose network'undeki
+// servis adi. Graylog konteyneri ayakta degilse (ornegin Docker'siz yerel gelistirme) Serilog'un
+// sink'i sessizce basarisiz olur, uygulamayi COKERTMEZ - konsol loglamasi her zaman calisir.
+builder.Host.UseSerilog((context, services, config) => config
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.Graylog(new GraylogSinkOptions
+    {
+        HostnameOrAddress = context.Configuration["Graylog:Host"] ?? "graylog",
+        Port = int.Parse(context.Configuration["Graylog:Port"] ?? "12201")
+    }));
 
 builder.Services.AddDbContext<SeyirMobilDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SeyirMobilDb")));
@@ -74,6 +91,19 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<SessionStore>();
 
 var app = builder.Build();
+
+// Her istegi (yontem, yol, durum kodu, sure) TEK bir yapilandirilmis log satirinda Graylog'a
+// gonderir - "kim, ne zaman, hangi endpoint" sorusunun backend tarafi. Kullanici bilgisi
+// (varsa) enrich callback'inde ekleniyor - bu callback istek TAMAMLANDIKTAN sonra calisiyor,
+// o noktada UseAuthentication zaten context.User'i doldurmus oluyor.
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("Kullanici", httpContext.User.Identity?.Name ?? "anonim");
+        diagnosticContext.Set("Rol", httpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "-");
+    };
+});
 
 if (app.Environment.IsDevelopment())
 {
@@ -286,6 +316,167 @@ app.MapGet("/api/arac-hareketleri/plakalar", async (SeyirMobilDbContext db) =>
     return Results.Ok(sonuc);
 })
 .WithName("GetAracPlakalari")
+.RequireAuthorization();
+
+// ---------- Excel'den toplu veri girisi (Madde 6, Eren bey 2. geri bildirimi) ----------
+
+// Dosya yuklenince: parse + tam dogrulama TEK adimda. Sonuc, hem web hem masaustunun
+// duzenlenebilir bir onizleme grid'inde gosterdigi ayni model (ImportSatiriSonuc).
+app.MapPost("/api/arac-hareketleri/import-onizleme", async (IFormFile dosya, SeyirMobilDbContext db) =>
+{
+    string[] beklenenBasliklar = ["AracPlaka", "VeriTarihi", "Hiz", "KmSayaci"];
+
+    using var stream = dosya.OpenReadStream();
+    using var workbook = new XLWorkbook(stream);
+    var sheet = workbook.Worksheets.First();
+
+    // Sutunlari POZISYONA gore degil, BASLIK METNINE gore kontrol ediyoruz - aksi halde
+    // (ornegin) rapor export'unun 4 sutunu ("Araç Plakası, Başlangıç Km, Bitiş Km, Yapılan Km")
+    // sessizce yanlis anlamlarla okunup anlamsiz hatalarla dolu bir tablo uretiyordu (gercek
+    // kullanici testinde yakalandi, 2026-08-06).
+    var bulunanBasliklar = beklenenBasliklar
+        .Select((_, i) => sheet.Cell(1, i + 1).GetString().Trim())
+        .ToArray();
+    var basliklarEslesiyorMu = beklenenBasliklar
+        .Zip(bulunanBasliklar, (beklenen, bulunan) => PlakaValidator.Normalize(beklenen) == PlakaValidator.Normalize(bulunan))
+        .All(esit => esit);
+
+    if (!basliklarEslesiyorMu)
+    {
+        var mesaj = $"Bu dosyanın sütun başlıkları beklenen formatla eşleşmiyor. " +
+            $"Beklenen: {string.Join(", ", beklenenBasliklar)}. " +
+            $"Bulunan: {string.Join(", ", bulunanBasliklar.Select(b => string.IsNullOrWhiteSpace(b) ? "(boş)" : b))}. " +
+            "Aşağıdaki \"Şablon İndir\" ile doğru formatta bir dosya indirip kullanabilirsiniz.";
+        return Results.Ok(new ImportOnizlemeYaniti([], mesaj));
+    }
+
+    var hamSatirlar = new List<ImportHamSatir>();
+    var satirNo = 1;
+    foreach (var row in sheet.RowsUsed().Skip(1)) // ilk satir baslik
+    {
+        var plaka = row.Cell(1).GetString().Trim();
+        string? tarihStr = row.Cell(2).TryGetValue<DateTime>(out var tarihDeger)
+            ? tarihDeger.ToString("yyyy-MM-dd")
+            : row.Cell(2).GetString().Trim();
+        int? hiz = row.Cell(3).TryGetValue<int>(out var hizDeger) ? hizDeger : null;
+        decimal? km = row.Cell(4).TryGetValue<decimal>(out var kmDeger) ? kmDeger : null;
+
+        if (string.IsNullOrWhiteSpace(plaka) && string.IsNullOrWhiteSpace(tarihStr))
+        {
+            continue; // tamamen bos satir, dosyanin sonundaki bos satirlar icin
+        }
+        hamSatirlar.Add(new ImportHamSatir(satirNo, plaka, tarihStr ?? "", hiz, km));
+        satirNo++;
+    }
+    return Results.Ok(new ImportOnizlemeYaniti(await ImportSatirlariDogrulaAsync(hamSatirlar, db)));
+})
+.WithName("ImportOnizleme")
+.RequireAuthorization()
+// IFormFile parametre baglamasi .NET'te varsayilan olarak antiforgery middleware istiyor
+// (cookie tabanli auth icin CSRF korumasi) - biz JWT Bearer kullaniyoruz, cookie yok, CSRF
+// riski bu senaryoda gecerli degil, bu yuzden bilincli olarak kapatiliyor.
+.DisableAntiforgery();
+
+// Kullanicinin dogru formati gormesi icin ornek/bos bir sablon .xlsx uretir - "AracPlaka,
+// VeriTarihi, Hiz, KmSayaci" basliklariyla, bir ornek satirla. Yanlis dosya yukleme hatasinin
+// (rapor export'unun import'a yuklenmesi gibi) tekrarlanma olasiligini azaltir.
+app.MapGet("/api/arac-hareketleri/import-sablon", () =>
+{
+    using var workbook = new XLWorkbook();
+    var sheet = workbook.Worksheets.Add("Şablon");
+    var satirNo = YazKolonBasliklari(sheet, 1, ["AracPlaka", "VeriTarihi", "Hiz", "KmSayaci"]);
+    sheet.Cell(satirNo, 1).Value = "34 AB 123";
+    YazTarihHucresi(sheet.Cell(satirNo, 2), DateOnly.FromDateTime(DateTime.Today));
+    sheet.Cell(satirNo, 3).Value = 60;
+    YazKmHucresi(sheet.Cell(satirNo, 4), 12345.67m);
+    sheet.Columns().AdjustToContents();
+    return ExcelDosyasiSonucu(workbook, "import-sablon.xlsx");
+})
+.WithName("ImportSablonIndir")
+.RequireAuthorization();
+
+// Kullanici onizleme grid'inde bir hucreyi duzenledikten sonra ("Yeniden Dogrula" butonu) -
+// dosyayi tekrar yuklemeden, sadece degisen veriyi AYNI dogrulama fonksiyonundan tekrar gecirir.
+app.MapPost("/api/arac-hareketleri/import-yeniden-dogrula", async (ImportYenidenDogrulaRequest request, SeyirMobilDbContext db) =>
+    Results.Ok(new ImportOnizlemeYaniti(await ImportSatirlariDogrulaAsync(request.Satirlar, db))))
+.WithName("ImportYenidenDogrula")
+.RequireAuthorization();
+
+// Son onay - once AYNI dogrulama TEKRAR sunucu tarafinda calisir (istemciye guvenilmez,
+// onizleme ile onayla arasinda baska bir kullanici/islem araya girmis olabilir), sonra
+// sadece hatasiz VE (cakismasi yoksa ya da cakisma icin acik bir aksiyon secilmisse) satirlar
+// islenir. Cakisma icin aksiyon secilmemisse o satir hata olarak geri bildirilir - kullanicinin
+// KENDISI karar vermeli (2026-08-06 kullanici karari), sistem varsayilan bir davranis SECMEZ.
+app.MapPost("/api/arac-hareketleri/import-onayla", async (ImportOnaylaRequest request, SeyirMobilDbContext db) =>
+{
+    var hamSatirlar = request.Satirlar
+        .Select(s => new ImportHamSatir(s.SatirNo, s.AracPlaka, s.VeriTarihi, s.Hiz, s.KmSayaci))
+        .ToList();
+    var dogrulama = (await ImportSatirlariDogrulaAsync(hamSatirlar, db)).ToDictionary(d => d.SatirNo);
+
+    var eklenen = 0;
+    var guncellenen = 0;
+    var atlanan = 0;
+    var hatali = new List<string>();
+
+    foreach (var satir in request.Satirlar)
+    {
+        var dogru = dogrulama[satir.SatirNo];
+        if (dogru.Hatalar.Count > 0)
+        {
+            hatali.Add($"Satır {satir.SatirNo}: {string.Join(" ", dogru.Hatalar)}");
+            continue;
+        }
+
+        var tarih = DateOnly.Parse(dogru.VeriTarihi!);
+
+        if (dogru.CakismaVarMi)
+        {
+            if (satir.CakismaAksiyonu == "Atla")
+            {
+                atlanan++;
+                continue;
+            }
+            if (satir.CakismaAksiyonu != "UzerineYaz")
+            {
+                hatali.Add($"Satır {satir.SatirNo}: Çakışma için \"üzerine yaz\" veya \"atla\" seçilmedi.");
+                continue;
+            }
+            var mevcutKayit = await db.AracHareketleri
+                .FirstAsync(h => h.AracId == dogru.AracId && h.VeriTarihi == tarih);
+            mevcutKayit.Hiz = satir.Hiz;
+            mevcutKayit.KmSayaci = satir.KmSayaci;
+            guncellenen++;
+        }
+        else
+        {
+            db.AracHareketleri.Add(new AracHareket
+            {
+                AracId = dogru.AracId!.Value,
+                AracPlaka = dogru.KanonikAracPlaka,
+                VeriTarihi = tarih,
+                Hiz = satir.Hiz,
+                KmSayaci = satir.KmSayaci
+            });
+            eklenen++;
+        }
+    }
+    await db.SaveChangesAsync();
+
+    if (hatali.Count > 0)
+    {
+        return Results.BadRequest(new
+        {
+            message = "Bazı satırlar içe aktarılamadı, düzeltip tekrar deneyin.",
+            hatalar = hatali,
+            eklenenSayisi = eklenen,
+            guncellenenSayisi = guncellenen,
+            atlananSayisi = atlanan
+        });
+    }
+    return Results.Ok(new ImportOnaylaSonuc(eklenen, guncellenen, atlanan));
+})
+.WithName("ImportOnayla")
 .RequireAuthorization();
 
 // Coklu plaka secimi icin toplu rapor - her plaka icin ayni "ilk/son okuma farki" mantigi
@@ -526,6 +717,25 @@ app.MapDelete("/api/users/{id:int}", async (int id, SeyirMobilDbContext db) =>
 .RequireAuthorization(policy => policy.RequireRole("Admin"))
 .WithName("DeleteUser");
 
+// ---------- Frontend etkilesim loglari (Madde 5, Eren bey 2. geri bildirimi) ----------
+
+// Web'deki HER tiklama/etkilesim buraya gonderiliyor - istemci hicbir zaman Graylog'a
+// DOGRUDAN baglanmiyor (mimari kural: §2, istemciler sadece API'yi cagirir), backend bunu
+// kendi Serilog->Graylog hattina (yukaridaki UseSerilogRequestLogging ile AYNI pipeline)
+// aktariyor. Auth ZORUNLU DEGIL - login ekranindaki tiklamalar da (henuz token yokken)
+// loglanabilsin diye; kullanici bilgisi varsa (token gonderildiyse) otomatik ekleniyor.
+app.MapPost("/api/frontend-log", (FrontendLogRequest request, ClaimsPrincipal principal, ILogger<Program> logger) =>
+{
+    logger.LogInformation(
+        "Frontend etkilesim: {Eylem} | {Detay} | Sayfa={Sayfa} | Kullanici={Kullanici}",
+        request.Eylem,
+        request.Detay ?? "-",
+        request.Sayfa,
+        principal.Identity?.Name ?? "anonim");
+    return Results.NoContent();
+})
+.WithName("FrontendLog");
+
 app.Run();
 
 // ---------- JWT uretimi (login endpoint'i kullanir) ----------
@@ -552,6 +762,153 @@ static (string Token, DateTime ExpiresAt) JwtOlustur(User user, IConfiguration c
         signingCredentials: creds);
 
     return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+}
+
+// ---------- Excel import dogrulama (import-onizleme/yeniden-dogrula/onayla ortak kullanir) ----------
+
+// Bir dosyadaki (veya kullanici tarafindan duzenlenmis) TUM satirlari tek seferde dogrular.
+// Tek satirlik ekleme endpoint'inden (POST /api/arac-hareketleri) farki: burada AYNI plaka icin
+// BIRDEN FAZLA yeni okuma AYNI ANDA gelebiliyor - km tutarliligi sadece DB'deki mevcut kayitlara
+// gore degil, dosyadaki DIGER satirlara gore de (kronolojik siraya sokulup) kontrol edilmeli.
+static async Task<List<ImportSatiriSonuc>> ImportSatirlariDogrulaAsync(List<ImportHamSatir> hamSatirlar, SeyirMobilDbContext db)
+{
+    // 1. Mevcut (normalize plaka -> AracId + orijinal DB plaka string'i) eslemesi.
+    var mevcutPlakalar = await db.AracHareketleri
+        .Select(h => new { h.AracId, h.AracPlaka })
+        .Distinct()
+        .ToListAsync();
+
+    var normalizeToMevcut = new Dictionary<string, (int AracId, string OrijinalPlaka)>();
+    foreach (var p in mevcutPlakalar)
+    {
+        normalizeToMevcut.TryAdd(PlakaValidator.Normalize(p.AracPlaka), (p.AracId, p.AracPlaka));
+    }
+    var sonrakiYeniAracId = mevcutPlakalar.Count > 0 ? mevcutPlakalar.Max(p => p.AracId) + 1 : 1;
+
+    // 2. Her satirin plaka/AracId'sini coz - AYNI normalize plaka (dosya icinde tekrar etse bile)
+    // HER ZAMAN ayni AracId'yi alir (duplicate arac olusmasini onleyen mekanizma, kullanici karari).
+    var yeniPlakaAtamalari = new Dictionary<string, int>();
+    var cozumlenmis = new List<(ImportHamSatir Ham, string NormPlaka, int AracId, bool Yeni, string KanonikPlaka, DateOnly? Tarih, List<string> Hatalar)>();
+
+    foreach (var satir in hamSatirlar)
+    {
+        var hatalar = new List<string>();
+        var normPlaka = PlakaValidator.Normalize(satir.AracPlaka ?? "");
+
+        if (string.IsNullOrWhiteSpace(satir.AracPlaka) || !PlakaValidator.IsValid(satir.AracPlaka))
+        {
+            hatalar.Add("Geçersiz plaka formatı.");
+        }
+
+        DateOnly? tarih = DateOnly.TryParse(satir.VeriTarihi, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedTarih)
+            ? parsedTarih
+            : null;
+        if (tarih is null)
+        {
+            hatalar.Add("Geçersiz veya boş tarih.");
+        }
+
+        if (satir.Hiz is null || satir.Hiz < 0 || satir.Hiz > 300)
+        {
+            hatalar.Add("Hız 0-300 aralığında olmalı.");
+        }
+        if (satir.KmSayaci is null || satir.KmSayaci < 0)
+        {
+            hatalar.Add("Km sayacı negatif olamaz veya boş.");
+        }
+
+        int aracId;
+        bool yeni;
+        string kanonikPlaka;
+        if (normalizeToMevcut.TryGetValue(normPlaka, out var mevcut))
+        {
+            aracId = mevcut.AracId;
+            yeni = false;
+            kanonikPlaka = mevcut.OrijinalPlaka;
+        }
+        else if (yeniPlakaAtamalari.TryGetValue(normPlaka, out var atanmisId))
+        {
+            aracId = atanmisId;
+            yeni = true;
+            kanonikPlaka = normPlaka;
+        }
+        else
+        {
+            aracId = sonrakiYeniAracId++;
+            yeniPlakaAtamalari[normPlaka] = aracId;
+            yeni = true;
+            kanonikPlaka = normPlaka;
+        }
+
+        cozumlenmis.Add((satir, normPlaka, aracId, yeni, kanonikPlaka, tarih, hatalar));
+    }
+
+    // 3. Dosya/duzenleme icinde ayni plaka+tarih TEKRARI (iki satir ayni araca ayni gun icin).
+    foreach (var grup in cozumlenmis.Where(s => s.Tarih.HasValue).GroupBy(s => (s.AracId, s.Tarih)))
+    {
+        if (grup.Count() > 1)
+        {
+            foreach (var s in grup)
+            {
+                s.Hatalar.Add("Bu dosyada aynı plaka + tarih için birden fazla satır var.");
+            }
+        }
+    }
+
+    // 4. Arac (AracId) bazinda: DB'deki mevcut okumalar + bu grubun gecerli satirlari BIRLIKTE
+    // kronolojik siraya konup km sayacinin artan oldugu dogrulanir, ayrica DB ile birebir
+    // tarih cakismasi tespit edilir.
+    var sonuclar = new List<ImportSatiriSonuc>();
+    foreach (var grup in cozumlenmis.GroupBy(s => s.AracId))
+    {
+        var orijinalDbPlaka = normalizeToMevcut.Values.FirstOrDefault(v => v.AracId == grup.Key).OrijinalPlaka;
+        var dbOkumalari = orijinalDbPlaka is not null
+            ? await db.AracHareketleri.Where(h => h.AracPlaka == orijinalDbPlaka).ToListAsync()
+            : [];
+
+        var zamanSirali = dbOkumalari
+            .Select(h => (VeriTarihi: h.VeriTarihi, KmSayaci: h.KmSayaci, SatirNo: (int?)null))
+            .Concat(grup
+                .Where(s => s.Tarih.HasValue && s.Ham.KmSayaci.HasValue && s.Hatalar.Count == 0)
+                .Select(s => (VeriTarihi: s.Tarih!.Value, KmSayaci: s.Ham.KmSayaci!.Value, SatirNo: (int?)s.Ham.SatirNo)))
+            .OrderBy(z => z.VeriTarihi)
+            .ToList();
+
+        foreach (var s in grup)
+        {
+            var dbEslesen = dbOkumalari.FirstOrDefault(h => h.VeriTarihi == s.Tarih);
+            var cakismaVarMi = dbEslesen is not null;
+
+            if (s.Tarih.HasValue && s.Ham.KmSayaci.HasValue && s.Hatalar.Count == 0 && !cakismaVarMi)
+            {
+                var index = zamanSirali.FindIndex(z => z.SatirNo == s.Ham.SatirNo);
+                if (index > 0 && s.Ham.KmSayaci <= zamanSirali[index - 1].KmSayaci)
+                {
+                    s.Hatalar.Add($"Km sayacı, {zamanSirali[index - 1].VeriTarihi:dd.MM.yyyy} tarihli {zamanSirali[index - 1].KmSayaci:N2} km değerinden büyük olmalı.");
+                }
+                if (index < zamanSirali.Count - 1 && s.Ham.KmSayaci >= zamanSirali[index + 1].KmSayaci)
+                {
+                    s.Hatalar.Add($"Km sayacı, {zamanSirali[index + 1].VeriTarihi:dd.MM.yyyy} tarihli {zamanSirali[index + 1].KmSayaci:N2} km değerinden küçük olmalı.");
+                }
+            }
+
+            sonuclar.Add(new ImportSatiriSonuc(
+                s.Ham.SatirNo,
+                s.Ham.AracPlaka,
+                s.KanonikPlaka,
+                s.AracId,
+                s.Yeni,
+                s.Tarih?.ToString("yyyy-MM-dd"),
+                s.Ham.Hiz,
+                s.Ham.KmSayaci,
+                cakismaVarMi,
+                dbEslesen?.Hiz,
+                dbEslesen?.KmSayaci,
+                s.Hatalar));
+        }
+    }
+
+    return [.. sonuclar.OrderBy(s => s.SatirNo)];
 }
 
 // ---------- Rapor hesaplama (rapor-toplu/rapor-detay VE export endpoint'leri ortak kullanir) ----------

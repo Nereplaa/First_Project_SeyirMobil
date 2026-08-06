@@ -51,3 +51,51 @@ export interface AracHareketDetayRaporSatiriDto {
   artis: number | null;
 }
 
+// ---------- Excel'den toplu veri girişi (import) ----------
+
+export interface ImportHamSatirDto {
+  satirNo: number;
+  aracPlaka: string;
+  veriTarihi: string;
+  hiz: number | null;
+  kmSayaci: number | null;
+}
+
+export interface ImportSatiriSonucDto {
+  satirNo: number;
+  aracPlaka: string;
+  kanonikAracPlaka: string;
+  aracId: number | null;
+  yeniAracMi: boolean;
+  veriTarihi: string | null;
+  hiz: number | null;
+  kmSayaci: number | null;
+  cakismaVarMi: boolean;
+  mevcutHiz: number | null;
+  mevcutKmSayaci: number | null;
+  hatalar: string[];
+  // Sadece grid'de kullanilan, backend'den gelmeyen alan - cakisan satirlar icin kullanicinin
+  // sectigi aksiyon ("UzerineYaz" | "Atla" | henuz secilmediyse "").
+  cakismaAksiyonu?: string;
+}
+
+export interface ImportOnizlemeYanitiDto {
+  satirlar: ImportSatiriSonucDto[];
+  dosyaHatasi?: string | null;
+}
+
+export interface ImportOnaylaSatiriDto {
+  satirNo: number;
+  aracPlaka: string;
+  veriTarihi: string;
+  hiz: number;
+  kmSayaci: number;
+  cakismaAksiyonu: string;
+}
+
+export interface ImportOnaylaSonucDto {
+  eklenenSayisi: number;
+  guncellenenSayisi: number;
+  atlananSayisi: number;
+}
+

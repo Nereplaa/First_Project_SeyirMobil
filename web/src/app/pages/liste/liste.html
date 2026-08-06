@@ -149,6 +149,13 @@
     <div style="display: flex; gap: 0.5rem">
       <dx-button text="Yenile" type="normal" (onClick)="refreshGrid()"></dx-button>
       <dx-button text="Sil" type="danger" [disabled]="!seciliHareket()" (onClick)="sil()"></dx-button>
+      <input #importDosyaSecici type="file" accept=".xlsx" hidden (change)="excelDenAktarSecildi($event)" />
+      <dx-button
+        text="Excel'den Veri Aktar"
+        type="normal"
+        stylingMode="outlined"
+        (onClick)="importDosyaSecici.click()"
+      ></dx-button>
     </div>
   </div>
 

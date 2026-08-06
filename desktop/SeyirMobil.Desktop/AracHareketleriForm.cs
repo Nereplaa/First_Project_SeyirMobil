@@ -153,6 +153,14 @@ public partial class AracHareketleriForm : Form
         raporForm.ShowDialog(this);
     }
 
+    private async void btnExcelIceAktar_Click(object? sender, EventArgs e)
+    {
+        using var importForm = new AracHareketImportForm();
+        importForm.ShowDialog(this);
+        // Import ekranindan yeni kayitlar eklenmis olabilir - ana listeyi tazele.
+        await RefreshGridAsync();
+    }
+
     private async Task RefreshGridAsync()
     {
         lblStatus.Text = "Yükleniyor...";

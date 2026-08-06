@@ -325,6 +325,41 @@ yapıda kuruldu.
 
 ---
 
+## 2026-08-06 12:01 — Sistem Docker'a Taşındı, Merkezi Log Takibi Eklendi
+
+Roadmap'in beşinci ve en kapsamlı maddesi tamamlandı — 6 maddelik listenin sonuncusu hariç
+hepsi bitti. Sistemin tüm parçaları (veritabanı, backend, web) artık tek bir komutla ayağa
+kalkan konteynerler halinde çalışıyor; bu, kurulumu ve dağıtımı önemli ölçüde basitleştiriyor.
+Ayrıca merkezi bir log takip sistemi (Graylog) devreye alındı: backend'e gelen her istek ve web
+arayüzündeki her tıklama artık kaydediliyor — kim, ne zaman, hangi işlemi yaptı sorusuna cevap
+verebilecek bir izlenebilirlik katmanı eklendi. Yönetici Paneli'ne bu kayıtları görüntülemek
+için Graylog'un kendi arayüzüne giden bir bağlantı eklendi.
+
+---
+
+## 2026-08-06 13:30 — Graylog Kullanımı: Arama, Zaman Dilimi ve Kullanıcı Yönetimi
+
+Öğle arasının ardından, yeni devreye alınan log takip ekranı (Graylog) birlikte incelendi ve
+gerçek kullanım üzerinden birkaç konu netleşti: arama kutusunun kendi sözdizimi kuralları,
+saatlerin doğru dilimde (İstanbul, UTC+3) gösterilmesi için yapılan ayar ve günlük kullanım için
+yerleşik yönetici hesabından ayrı, düzenlenebilir bir kullanıcı hesabı açılması. Bu sayede log
+arama ekranı artık rahatça günlük kullanıma hazır.
+
+---
+
+## 2026-08-06 15:00 — Excel'den Toplu Veri Girişi: Roadmap'in Son Maddesi de Tamamlandı
+
+6 maddelik yol haritasının tamamı bitti. Artık hem web hem masaüstü uygulamasında bir Excel
+dosyası yüklenerek onlarca araç hareketi tek seferde sisteme aktarılabiliyor. Yüklenen dosya
+önce ayrıntılı şekilde kontrol ediliyor (geçersiz plakalar, tarihler, tutarsız kilometre
+değerleri, sistemde zaten var olan kayıtlarla çakışma) ve kullanıcıya düzenlenebilir bir önizleme
+sunuluyor — hatalı satırlar düzeltilebiliyor, çakışan kayıtlar için "üzerine yaz" veya "atla"
+seçilebiliyor. Sistemde henüz kayıtlı olmayan bir plaka görülürse otomatik olarak yeni bir araç
+olarak ekleniyor, aynı yazım hatasının yanlışlıkla birden fazla araç oluşturmasını önleyen bir
+kontrol de bu sırada devrede.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
@@ -337,6 +372,6 @@ yapıda kuruldu.
 - [x] Bildirim/uyarı ekranlarının SweetAlert ile yenilenmesi
 - [x] Excel'e aktarmanın DevExtreme üzerinden sadeleştirilmesi (web)
 - [x] Yönetici paneli + rol bazlı yönlendirme (web)
-- [ ] Docker ile konteynerleştirme + kullanıcı hareket günlüğü (Graylog) — **sıradaki adım**
-- [ ] Excel'den toplu veri içe aktarma (web + masaüstü)
+- [x] Docker ile konteynerleştirme + kullanıcı hareket günlüğü (Graylog)
+- [x] Excel'den toplu veri içe aktarma (web + masaüstü)
 - [ ] Üst menü/sekme yapısının DevExtreme'e taşınması (isteğe bağlı, henüz yapılmadı)
