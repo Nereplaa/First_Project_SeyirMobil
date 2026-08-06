@@ -125,9 +125,18 @@ export class Liste implements OnInit {
     this.api.getTumHareketler().subscribe({
       next: (hareketler) => {
         this.tumHareketler.set(hareketler);
-        this.gosterilenHareketler.set(hareketler);
         this.filtrePlakaListesiniDoldur(hareketler);
-        this.statusText.set(`${hareketler.length} hareket kaydı yüklendi.`);
+
+        // Aktif bir filtre varsa (filtre kriterleri varsayilan degilse) yeni veriye de AYNI
+        // filtreyi tekrar uygula - "Yenile" filtreyi sifirlamamali, sadece veriyi tazelemeli.
+        if (this.filtreAktifMi()) {
+          const sonuc = this.filtreleUygulaKriterleri(hareketler);
+          this.gosterilenHareketler.set(sonuc);
+          this.statusText.set(`${sonuc.length} / ${hareketler.length} kayıt gösteriliyor (filtreli).`);
+        } else {
+          this.gosterilenHareketler.set(hareketler);
+          this.statusText.set(`${hareketler.length} hareket kaydı yüklendi.`);
+        }
       },
       error: (err) => {
         if (oturumHatasiMi(err)) {
@@ -325,9 +334,22 @@ export class Liste implements OnInit {
     this.filtrePlakaListesi.set([FILTRE_TUMU, ...plakalar]);
   }
 
-  filtreleUygula(): void {
-    this.filtreHatasi.set('');
-    let sonuc = this.tumHareketler();
+  // Herhangi bir filtre kriteri varsayilan (bos) degilse true - hem "Filtrele" hem "Yenile"
+  // bu soruyu ayni sekilde cevaplamali, o yuzden mantik burada TEK yerde toplandi.
+  private filtreAktifMi(): boolean {
+    return (
+      this.filtrePlaka !== FILTRE_TUMU ||
+      this.filtreTarihAktif ||
+      this.filtreHiz != null ||
+      this.filtreKm != null
+    );
+  }
+
+  // Su anki filtre kriterlerini (component alanlari) verilen kaynak diziye uygular. "Filtrele"
+  // butonu VE "Yenile" (refreshGrid) AYNI bu fonksiyonu kullanir - mantik iki yerde ayri ayri
+  // yazilirsa, biri guncellenip digeri unutulunca (tam da bu bug'da oldugu gibi) tekrar bozulur.
+  private filtreleUygulaKriterleri(kaynak: AracHareketDto[]): AracHareketDto[] {
+    let sonuc = kaynak;
 
     if (this.filtrePlaka !== FILTRE_TUMU) {
       sonuc = sonuc.filter((h) => h.aracPlaka === this.filtrePlaka);
@@ -346,6 +368,12 @@ export class Liste implements OnInit {
       sonuc = sonuc.filter((h) => h.kmSayaci === this.filtreKm);
     }
 
+    return sonuc;
+  }
+
+  filtreleUygula(): void {
+    this.filtreHatasi.set('');
+    const sonuc = this.filtreleUygulaKriterleri(this.tumHareketler());
     this.gosterilenHareketler.set(sonuc);
     this.statusText.set(`${sonuc.length} / ${this.tumHareketler().length} kayıt gösteriliyor (filtreli).`);
   }

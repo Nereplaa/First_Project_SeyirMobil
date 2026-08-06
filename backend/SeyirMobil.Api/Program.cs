@@ -6,6 +6,7 @@ using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using SeyirMobil.Api.Data;
 using SeyirMobil.Api.Models;
 using SeyirMobil.Api.Services;
@@ -17,7 +18,25 @@ builder.Services.AddDbContext<SeyirMobilDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SeyirMobilDb")));
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Swagger UI'da "Authorize" kilidini ve token girişini aktif eder - eklenmeden once
+    // korumali endpoint'ler Swagger'dan denenince Authorization header'i hic gitmedigi
+    // icin hep 401 donuyordu.
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Once /api/auth/login ile token al, sonra buraya SADECE token'in kendisini yapistir (\"Bearer \" onekini SEN eklemene gerek yok, Swagger ekliyor)."
+    });
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+});
 
 const string WebClientCorsPolicy = "WebClient";
 builder.Services.AddCors(options =>
@@ -28,10 +47,9 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// Auth altyapisi (2026-08-04): login/session/token sistemi. Mevcut arac-hareketleri/vehicles
-// endpoint'leri BILINCLI olarak kilitlenmiyor - istemciler (desktop/web) login ekranina
-// kavusana kadar oldugu gibi calismaya devam etsinler diye. Sadece /api/auth ve /api/users
-// (kullanici yonetimi) korumali.
+// Auth altyapisi (2026-08-04): login/session/token sistemi. Tum arac-hareketleri endpoint'leri
+// (2026-08-04 14:31'den itibaren) ve /api/users (kullanici yonetimi) kilitli - sadece
+// /api/auth/login acik (aksi halde kimse giris yapamaz).
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["SecretKey"]!));
 
@@ -104,52 +122,6 @@ using (var seedScope = app.Services.CreateScope())
         await seedDb.SaveChangesAsync();
     }
 }
-
-app.MapGet("/api/vehicles", async (SeyirMobilDbContext db) =>
-    await db.Vehicles.OrderBy(v => v.AracId).ToListAsync())
-    .WithName("GetVehicles")
-    .RequireAuthorization();
-
-app.MapGet("/api/vehicles/{id:int}", async (int id, SeyirMobilDbContext db) =>
-    await db.Vehicles.FindAsync(id) is Vehicle vehicle
-        ? Results.Ok(vehicle)
-        : Results.NotFound())
-    .WithName("GetVehicleById")
-    .RequireAuthorization();
-
-app.MapPost("/api/vehicles", async (CreateVehicleRequest request, SeyirMobilDbContext db) =>
-{
-    if (!PlakaValidator.IsValid(request.Plaka))
-    {
-        return Results.BadRequest(new { message = "Geçersiz plaka formatı. Örnek: 34ABC123 (il kodu 01-81 + 1-3 harf + rakam)." });
-    }
-
-    var vehicle = new Vehicle
-    {
-        Plaka = PlakaValidator.Normalize(request.Plaka),
-        TotalKm = request.TotalKm,
-        KayitTrh = DateTime.Now
-    };
-    db.Vehicles.Add(vehicle);
-    await db.SaveChangesAsync();
-    return Results.Created($"/api/vehicles/{vehicle.AracId}", vehicle);
-})
-.WithName("CreateVehicle")
-.RequireAuthorization();
-
-app.MapDelete("/api/vehicles/{id:int}", async (int id, SeyirMobilDbContext db) =>
-{
-    var vehicle = await db.Vehicles.FindAsync(id);
-    if (vehicle is null)
-    {
-        return Results.NotFound();
-    }
-    db.Vehicles.Remove(vehicle);
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-})
-.WithName("DeleteVehicle")
-.RequireAuthorization();
 
 // Tarih aralığı raporu: verilen plaka + [baslangic, bitis] araliginda ilk ve son km sayaci
 // okumasi bulunur, farklari "yapilan km" olarak donulur. Filtreleme/siralama EF Core LINQ
@@ -687,5 +659,3 @@ static IResult ExcelDosyasiSonucu(XLWorkbook workbook, string dosyaAdi)
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         dosyaAdi);
 }
-
-record CreateVehicleRequest(string Plaka, decimal TotalKm);

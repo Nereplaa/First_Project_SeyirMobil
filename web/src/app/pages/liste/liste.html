@@ -21,6 +21,7 @@
         <dx-date-box
           id="wizardTarih"
           type="date"
+          pickerType="calendar"
           displayFormat="dd.MM.yyyy"
           [value]="wizardTarihDate"
           (onValueChanged)="wizardTarihDegisti($event)"
@@ -93,18 +94,20 @@
       ></dx-select-box>
     </div>
     <div class="field">
-      <label>
+      <label for="filtreTarih">Tarih</label>
+      <div style="display: flex; align-items: center; gap: 0.4rem">
         <dx-check-box [value]="filtreTarihAktif" (onValueChanged)="filtreTarihAktif = !!$event.value"></dx-check-box>
-        Tarih
-      </label>
-      <dx-date-box
-        type="date"
-        displayFormat="dd.MM.yyyy"
-        [disabled]="!filtreTarihAktif"
-        [value]="filtreTarihDate"
-        (onValueChanged)="filtreTarihDate = $event.value ?? filtreTarihDate"
-        width="140"
-      ></dx-date-box>
+        <dx-date-box
+          id="filtreTarih"
+          type="date"
+          pickerType="calendar"
+          displayFormat="dd.MM.yyyy"
+          [disabled]="!filtreTarihAktif"
+          [value]="filtreTarihDate"
+          (onValueChanged)="filtreTarihDate = $event.value ?? filtreTarihDate"
+          width="140"
+        ></dx-date-box>
+      </div>
     </div>
     <div class="field">
       <label for="filtreHiz">Hız</label>

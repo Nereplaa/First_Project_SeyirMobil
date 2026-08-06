@@ -3,6 +3,23 @@
 
   <div class="field-row">
     <div class="field">
+      <label for="tarihAraligi">Tarih Aralığı</label>
+      <dx-date-range-box
+        id="tarihAraligi"
+        [startDate]="baslangicDate"
+        (startDateChange)="baslangicDateDegisti($event)"
+        [endDate]="bitisDate"
+        (endDateChange)="bitisDateDegisti($event)"
+        startDatePlaceholder="Başlangıç"
+        endDatePlaceholder="Bitiş"
+        labelMode="hidden"
+        displayFormat="dd.MM.yyyy"
+        [showClearButton]="false"
+        width="260"
+      ></dx-date-range-box>
+    </div>
+
+    <div class="field">
       <label for="plakaSecim">Araçlar (birden fazla seçebilirsiniz)</label>
       <dx-tag-box
         id="plakaSecim"
@@ -12,26 +29,11 @@
         placeholder="Plaka ara..."
         [searchEnabled]="true"
         [showSelectionControls]="true"
+        [multiline]="false"
         [value]="seciliPlakalar()"
         (onValueChanged)="seciliPlakalarDegisti($event)"
         width="260"
       ></dx-tag-box>
-    </div>
-
-    <div class="field">
-      <label for="tarihAraligi">Tarih Aralığı</label>
-      <dx-date-range-box
-        id="tarihAraligi"
-        [startDate]="baslangicDate"
-        (startDateChange)="baslangicDateDegisti($event)"
-        [endDate]="bitisDate"
-        (endDateChange)="bitisDateDegisti($event)"
-        startDateLabel="Başlangıç"
-        endDateLabel="Bitiş"
-        displayFormat="dd.MM.yyyy"
-        [showClearButton]="false"
-        width="260"
-      ></dx-date-range-box>
     </div>
 
     <div class="field">
@@ -81,54 +83,26 @@
 
 @if (raporUretildi() && !detayliRapor) {
   <section class="card">
-    <div style="overflow-x: auto">
-      <table>
-        <thead>
-          <tr>
-            <th>Araç Plakası</th>
-            <th>Başlangıç Km</th>
-            <th>Bitiş Km</th>
-            <th>Yapılan Km</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (s of ozetSonuclar(); track s.aracPlaka) {
-            <tr>
-              <td>{{ s.aracPlaka }}</td>
-              <td>{{ s.bulunduMu ? formatKm(s.baslangicKm) : 'Veri yok' }}</td>
-              <td>{{ s.bulunduMu ? formatKm(s.bitisKm) : 'Veri yok' }}</td>
-              <td>{{ s.bulunduMu ? formatKm(s.yapilanKm) : 'Veri yok' }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <dx-data-grid
+      [dataSource]="ozetSonuclar()"
+      [columns]="ozetColumns"
+      [showBorders]="true"
+      [rowAlternationEnabled]="true"
+      [searchPanel]="{ visible: true, placeholder: 'Ara...' }"
+    ></dx-data-grid>
   </section>
 }
 
 @if (raporUretildi() && detayliRapor) {
   <section class="card">
-    <div style="overflow-x: auto">
-      <table>
-        <thead>
-          <tr>
-            <th>Araç Plaka</th>
-            <th>Veri Tarihi</th>
-            <th>Km Sayacı</th>
-            <th>Bir Önceki Okumaya Göre Artış</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (s of detaySonuclar(); track $index) {
-            <tr>
-              <td>{{ s.aracPlaka }}</td>
-              <td>{{ formatTarih(s.veriTarihi) }}</td>
-              <td>{{ formatKm(s.kmSayaci) }}</td>
-              <td>{{ s.artis == null ? '-' : formatKm(s.artis) }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    <dx-data-grid
+      [dataSource]="detaySonuclar()"
+      [columns]="detayColumns"
+      [showBorders]="true"
+      [rowAlternationEnabled]="true"
+      [paging]="{ pageSize: 25 }"
+      [pager]="{ visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100], showInfo: true }"
+      [searchPanel]="{ visible: true, placeholder: 'Ara...' }"
+    ></dx-data-grid>
   </section>
 }

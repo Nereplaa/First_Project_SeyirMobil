@@ -240,6 +240,33 @@ değiştirildi — kod hem sadeleşti hem de daha tutarlı bir kullanıcı deney
 
 ---
 
+## 2026-08-05 13:21 — Vehicles Tablosu ve Kullanılmayan CRUD Kaldırıldı
+
+Projenin ilk/alıştırma tablosu olan `Vehicles` (araç ID, plaka, toplam kilometre) hiçbir istemci
+tarafından kullanılmıyordu — masaüstü ve web tamamen `AracHareketleri`'ne geçtiğinden beri arka
+planda atıl duruyordu. Backend'deki `Vehicles` uç noktaları (`GET/POST/DELETE /api/vehicles`),
+ilgili model ve `DbContext` kaydı kaldırıldı; veritabanındaki tablo yeni bir migration script'iyle
+(`006_drop_vehicles_table.sql`) silindi. Önceki oluşturma script'leri (`001`, `002`) geçmiş kaydı
+olarak saklandı, sadece yeni script'le geri alındı.
+
+---
+
+## 2026-08-06 09:16 — Rapor Ekranındaki Sonuç Tabloları da DevExtreme'e Geçti, İkinci Geri Bildirim Turu
+
+Rapor ekranındaki iki sonuç tablosu (özet ve gün-gün detaylı rapor) de artık DevExtreme'in
+gelişmiş tablo bileşenini kullanıyor — web arayüzünde artık hiçbir yerde eski tip düz HTML
+tablo/form elemanı kalmadı, tamamı tutarlı bir bileşen kütüphanesi üzerinden geliyor.
+
+Eren bey ile ikinci, mülakat tarzında bir geri bildirim toplantısı yapıldı. Sonucunda 6 maddelik
+yeni bir iş listesi netleşti: oturumun sunucu yeniden başlatılınca düşmemesi için kalıcı bir
+oturum takibi, bildirim/uyarı ekranlarının daha modern bir kütüphaneyle (SweetAlert)
+yenilenmesi, Excel'e aktarma sisteminin sadeleştirilmesi, rol bazlı (yönetici/görüntüleyici) bir
+yönetici paneli, kapsamlı bir kullanıcı hareket günlüğü (Graylog + Docker ile) ve Excel'den toplu
+veri içe aktarma. Uygulama sırası birlikte kararlaştırıldı, ilk adıma başlamadan önce onay
+bekleniyor.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
@@ -247,6 +274,11 @@ değiştirildi — kod hem sadeleşti hem de daha tutarlı bir kullanıcı deney
 - [x] Giriş (login) sistemi — backend altyapısı
 - [x] Oturum zaman aşımı (hareketsizlikte otomatik çıkış)
 - [x] Giriş (login) sistemi — masaüstü ve web arayüzü
-- [x] UI/UX iyileştirmeleri (DevExtreme ile) — tüm web ekranları güncellendi
+- [x] UI/UX iyileştirmeleri (DevExtreme ile) — tüm web ekranları güncellendi (grid'ler dahil)
+- [ ] Oturum bilgisinin kalıcı (SQL Server tablosu) tutulması — **sıradaki adım**
+- [ ] Bildirim/uyarı ekranlarının SweetAlert ile yenilenmesi
+- [ ] Excel'e aktarmanın DevExtreme üzerinden sadeleştirilmesi
+- [ ] Yönetici paneli + rol bazlı yönlendirme
+- [ ] Docker ile konteynerleştirme + kullanıcı hareket günlüğü (Graylog)
+- [ ] Excel'den toplu veri içe aktarma (web + masaüstü)
 - [ ] Üst menü/sekme yapısının DevExtreme'e taşınması (isteğe bağlı, henüz yapılmadı)
-- [ ] Docker ile konteynerleştirme

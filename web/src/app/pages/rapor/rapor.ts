@@ -5,6 +5,7 @@ import {
   DxCheckBoxModule,
   DxSelectBoxModule,
   DxButtonModule,
+  DxDataGridModule,
 } from 'devextreme-angular';
 import { AracHareketApi } from '../../services/arac-hareket-api';
 import {
@@ -44,12 +45,62 @@ function isoToTarih(iso: string): Date {
 
 @Component({
   selector: 'app-rapor',
-  imports: [DxDateRangeBoxModule, DxTagBoxModule, DxCheckBoxModule, DxSelectBoxModule, DxButtonModule],
+  imports: [
+    DxDateRangeBoxModule,
+    DxTagBoxModule,
+    DxCheckBoxModule,
+    DxSelectBoxModule,
+    DxButtonModule,
+    DxDataGridModule,
+  ],
   templateUrl: './rapor.html',
   styleUrl: './rapor.css',
 })
 export class Rapor implements OnInit {
   private readonly api = inject(AracHareketApi);
+
+  // ---------- DevExtreme DataGrid kolonlari (ozet + detayli rapor) ----------
+  readonly ozetColumns = [
+    { dataField: 'aracPlaka', caption: 'Araç Plakası' },
+    {
+      dataField: 'baslangicKm',
+      caption: 'Başlangıç Km',
+      customizeText: (cellInfo: { value?: number | null }) =>
+        cellInfo.value == null ? 'Veri yok' : this.formatKm(cellInfo.value),
+    },
+    {
+      dataField: 'bitisKm',
+      caption: 'Bitiş Km',
+      customizeText: (cellInfo: { value?: number | null }) =>
+        cellInfo.value == null ? 'Veri yok' : this.formatKm(cellInfo.value),
+    },
+    {
+      dataField: 'yapilanKm',
+      caption: 'Yapılan Km',
+      customizeText: (cellInfo: { value?: number | null }) =>
+        cellInfo.value == null ? 'Veri yok' : this.formatKm(cellInfo.value),
+    },
+  ];
+
+  readonly detayColumns = [
+    { dataField: 'aracPlaka', caption: 'Araç Plaka' },
+    {
+      dataField: 'veriTarihi',
+      caption: 'Veri Tarihi',
+      customizeText: (cellInfo: { value?: string }) => (cellInfo.value ? this.formatTarih(cellInfo.value) : ''),
+    },
+    {
+      dataField: 'kmSayaci',
+      caption: 'Km Sayacı',
+      customizeText: (cellInfo: { value?: number }) => (cellInfo.value == null ? '' : this.formatKm(cellInfo.value)),
+    },
+    {
+      dataField: 'artis',
+      caption: 'Bir Önceki Okumaya Göre Artış',
+      customizeText: (cellInfo: { value?: number | null }) =>
+        cellInfo.value == null ? '-' : this.formatKm(cellInfo.value),
+    },
+  ];
 
   plakalar = signal<AracPlakaLookupDto[]>([]);
   // Plaka secimi artik dx-tag-box'in KENDI arama+cip mekanizmasi ile yapiliyor - onceki elle

@@ -74,10 +74,12 @@ Backend, masaüstü, web ve veritabanı katmanları en üst seviyede net şekild
 
 ```
 ├── database/                    ← SQL script'leri (sıralı, ör. 001_..., 002_...)
-│   ├── 001_create_vehicles_table.sql
-│   ├── 002_seed_dummy_data.sql
+│   ├── 001_create_vehicles_table.sql        (tarihsel — 006 ile tablo kaldırıldı)
+│   ├── 002_seed_dummy_data.sql              (tarihsel — 006 ile tablo kaldırıldı)
 │   ├── 003_create_arac_hareketleri_table.sql
-│   └── 004_seed_arac_hareketleri_dummy_data.sql
+│   ├── 004_seed_arac_hareketleri_dummy_data.sql
+│   ├── 005_create_users_table.sql
+│   └── 006_drop_vehicles_table.sql
 ├── backend/
 │   └── SeyirMobil.Api/          ← ASP.NET Core Web API + EF Core (tüm iş mantığı, DB erişimi)
 ├── desktop/
