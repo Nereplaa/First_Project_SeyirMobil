@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { DxTextBoxModule, DxButtonModule } from 'devextreme-angular';
 import { Auth } from '../../services/auth';
+import { rolBaslangicRotasi } from '../../utils/rol-yonlendirme';
 
 @Component({
   selector: 'app-login',
@@ -29,7 +30,7 @@ export class Login {
     this.auth.login(this.username().trim(), this.password()).subscribe({
       next: () => {
         this.girisYapiliyor.set(false);
-        this.router.navigateByUrl('/');
+        this.router.navigateByUrl(rolBaslangicRotasi(this.auth.role()));
       },
       error: (hata) => {
         this.girisYapiliyor.set(false);

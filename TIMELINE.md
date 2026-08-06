@@ -314,6 +314,17 @@ Excel'e aktarma özelliği bu değişiklikten etkilenmedi, eskisi gibi çalışm
 
 ---
 
+## 2026-08-06 11:02 — Yönetici Paneli ve Role Göre Karşılama Ekranı
+
+Roadmap'in dördüncü maddesi tamamlandı. Artık ayrı bir Yönetici Paneli var: kullanıcı hesapları
+buradan görüntülenip yeni hesap eklenebiliyor ve silinebiliyor — bu özellik backend'de bir süredir
+hazırdı ama şimdiye kadar hiçbir ekranı yoktu. Ayrıca giriş yapan kullanıcı, rolüne göre farklı bir
+ekranla karşılanıyor artık: yöneticiler doğrudan Yönetici Paneli'ne, diğer kullanıcılar mevcut ana
+ekrana yönleniyor. Bu yönlendirme, ileride yeni roller eklendiğinde kolayca genişleyebilecek bir
+yapıda kuruldu.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
@@ -325,7 +336,7 @@ Excel'e aktarma özelliği bu değişiklikten etkilenmedi, eskisi gibi çalışm
 - [x] Oturum bilgisinin kalıcı (SQL Server tablosu) tutulması
 - [x] Bildirim/uyarı ekranlarının SweetAlert ile yenilenmesi
 - [x] Excel'e aktarmanın DevExtreme üzerinden sadeleştirilmesi (web)
-- [ ] Yönetici paneli + rol bazlı yönlendirme — **sıradaki adım**
-- [ ] Docker ile konteynerleştirme + kullanıcı hareket günlüğü (Graylog)
+- [x] Yönetici paneli + rol bazlı yönlendirme (web)
+- [ ] Docker ile konteynerleştirme + kullanıcı hareket günlüğü (Graylog) — **sıradaki adım**
 - [ ] Excel'den toplu veri içe aktarma (web + masaüstü)
 - [ ] Üst menü/sekme yapısının DevExtreme'e taşınması (isteğe bağlı, henüz yapılmadı)

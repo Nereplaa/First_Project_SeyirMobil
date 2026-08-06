@@ -1,9 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Service } from '@angular/core';
 import Swal from 'sweetalert2';
 
 // Tum native alert()/confirm() cagrilarinin yerini alan tek merkez (Eren bey geri bildirimi,
 // 2026-08-05 toplanti) - SweetAlert2 ile tutarli, DevExtreme temasiyla uyumlu bir gorunum.
-@Injectable({ providedIn: 'root' })
+@Service()
 export class Bildirim {
   hata(mesaj: string): void {
     Swal.fire({

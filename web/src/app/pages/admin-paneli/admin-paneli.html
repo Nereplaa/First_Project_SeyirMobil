@@ -1,0 +1,70 @@
+<section class="card">
+  <h2>Yeni Kullanıcı Ekle</h2>
+  <div class="field-row">
+    <div class="field">
+      <label for="yeniKullaniciAdi">Kullanıcı Adı</label>
+      <dx-text-box
+        id="yeniKullaniciAdi"
+        [value]="yeniKullaniciAdi"
+        (onValueChanged)="yeniKullaniciAdi = $event.value ?? ''"
+        width="180"
+      ></dx-text-box>
+    </div>
+    <div class="field">
+      <label for="yeniSifre">Şifre</label>
+      <dx-text-box
+        id="yeniSifre"
+        mode="password"
+        [value]="yeniSifre"
+        (onValueChanged)="yeniSifre = $event.value ?? ''"
+        width="180"
+      ></dx-text-box>
+    </div>
+    <div class="field">
+      <label for="yeniRol">Rol</label>
+      <dx-select-box
+        id="yeniRol"
+        [dataSource]="rolSecenekleri"
+        [value]="yeniRol"
+        (onValueChanged)="yeniRol = $event.value ?? 'Viewer'"
+        width="140"
+      ></dx-select-box>
+    </div>
+    <div class="field">
+      <label>&nbsp;</label>
+      <dx-button
+        [text]="ekleniyor() ? 'Ekleniyor…' : 'Ekle'"
+        type="default"
+        [disabled]="ekleniyor()"
+        (onClick)="ekle()"
+      ></dx-button>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <div class="field-row" style="justify-content: space-between; margin-bottom: 0.75rem">
+    <h2 style="margin: 0">Kullanıcılar</h2>
+    <dx-button
+      text="Sil"
+      type="danger"
+      [disabled]="!seciliKullanici() || kendisiSecilmiMi"
+      (onClick)="sil()"
+    ></dx-button>
+  </div>
+
+  <dx-data-grid
+    [dataSource]="kullanicilar()"
+    [columns]="dataGridColumns"
+    [showBorders]="true"
+    [rowAlternationEnabled]="true"
+    [selection]="{ mode: 'single' }"
+    [searchPanel]="{ visible: true, placeholder: 'Ara...' }"
+    (onSelectionChanged)="onSelectionChanged($event)"
+  ></dx-data-grid>
+
+  <p class="status-text" style="margin-top: 0.75rem">{{ statusText() }}</p>
+  @if (kendisiSecilmiMi) {
+    <p class="status-text" style="margin-top: 0.25rem">Kendi hesabını silemezsin.</p>
+  }
+</section>

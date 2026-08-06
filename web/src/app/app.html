@@ -4,6 +4,9 @@
     <nav>
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Araç Hareketleri</a>
       <a routerLink="/rapor" routerLinkActive="active">Araç Hareket Raporu</a>
+      @if (auth.role() === 'Admin') {
+        <a routerLink="/admin" routerLinkActive="active">Admin Paneli</a>
+      }
     </nav>
     <div class="kullanici-bilgisi">
       <span>{{ auth.username() }} ({{ auth.role() }})</span>
