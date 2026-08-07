@@ -1,5 +1,6 @@
-import { Component, HostListener, inject } from '@angular/core';
-import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, HostListener, inject, signal } from '@angular/core';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
 import { DxButtonModule } from 'devextreme-angular';
 import { Auth } from './services/auth';
 import { EtkilesimLoglayici } from './services/etkilesim-loglayici';
@@ -23,6 +24,19 @@ export class App {
   protected readonly auth = inject(Auth);
   private readonly router = inject(Router);
   private readonly etkilesimLoglayici = inject(EtkilesimLoglayici);
+
+  // Login ekranı KENDİ tam-sayfa marka/rota panelini gösteriyor - üst header'ın (marka şeridi +
+  // nav) orada da görünmesi çift/gereksiz duruyordu (2026-08-07 geri bildirimi). auth durumuna
+  // göre gizlemek YETERSİZDİ: kullanıcı token'ı hâlâ geçerliyken /login'e gelirse (guard bunu
+  // engellemiyor) hem header hem login formu aynı anda görünüyordu - bu yüzden doğrudan ROTAYA
+  // göre (yalnızca /login'de gizli) karar veriliyor, auth durumundan bağımsız.
+  protected readonly loginEkraninda = signal(this.router.url.startsWith('/login'));
+
+  constructor() {
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd)).subscribe((e) => {
+      this.loginEkraninda.set((e as NavigationEnd).urlAfterRedirects.startsWith('/login'));
+    });
+  }
 
   cikisYap(): void {
     this.auth.logout();

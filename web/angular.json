@@ -26,7 +26,7 @@
               }
             ],
             "styles": [
-              "node_modules/devextreme/dist/css/dx.light.css",
+              "node_modules/devextreme/dist/css/dx.fluent.saas.light.css",
               "src/styles.css"
             ]
           },
