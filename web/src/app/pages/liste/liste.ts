@@ -4,6 +4,8 @@ import {
   DxDataGridModule,
   DxSelectBoxModule,
   DxDateBoxModule,
+  DxDateRangeBoxModule,
+  DxTagBoxModule,
   DxNumberBoxModule,
   DxCheckBoxModule,
   DxButtonModule,
@@ -20,8 +22,6 @@ import {
 } from '../../models/arac-hareket.models';
 import { dosyaIndir } from '../../utils/dosya-indir';
 import { oturumHatasiMi } from '../../utils/hata-yardimcisi';
-
-const FILTRE_TUMU = 'Tümü';
 
 function bugunIso(): string {
   const d = new Date();
@@ -50,6 +50,8 @@ function isoToTarih(iso: string): Date {
     DxDataGridModule,
     DxSelectBoxModule,
     DxDateBoxModule,
+    DxDateRangeBoxModule,
+    DxTagBoxModule,
     DxNumberBoxModule,
     DxCheckBoxModule,
     DxButtonModule,
@@ -77,17 +79,28 @@ export class Liste implements OnInit {
   readonly ilkSayfaBoyutu = 25;
 
   readonly dataGridColumns = [
-    { dataField: 'aracId', caption: 'Araç ID', width: 90, alignment: 'left' as const },
-    { dataField: 'aracPlaka', caption: 'Araç Plaka', width: 150 },
+    { dataField: 'aracId', caption: 'Araç ID', width: 115, alignment: 'left' as const, cssClass: 'col-numeric' },
+    {
+      dataField: 'aracPlaka',
+      caption: 'Araç Plaka',
+      width: 150,
+      cellTemplate: (cellElement: HTMLElement, cellInfo: { value?: string }) => {
+        const span = document.createElement('span');
+        span.className = 'plaka-chip';
+        span.textContent = cellInfo.value ?? '';
+        cellElement.appendChild(span);
+      },
+    },
     {
       dataField: 'veriTarihi',
       caption: 'Veri Tarihi',
       width: 130,
+      cssClass: 'col-numeric',
       calculateSortValue: 'veriTarihi',
       customizeText: (cellInfo: { value?: string }) => (cellInfo.value ? this.formatTarih(cellInfo.value) : ''),
     },
-    { dataField: 'hiz', caption: 'Hız', width: 90, alignment: 'left' as const },
-    { dataField: 'kmSayaci', caption: 'Km Sayacı', format: '#,##0.00' },
+    { dataField: 'hiz', caption: 'Hız', width: 90, alignment: 'left' as const, cssClass: 'col-numeric' },
+    { dataField: 'kmSayaci', caption: 'Km Sayacı', format: '#,##0.00', cssClass: 'col-numeric' },
   ];
 
   onSelectionChanged(event: { selectedRowsData: AracHareketDto[] }): void {
@@ -95,11 +108,32 @@ export class Liste implements OnInit {
   }
 
   // ---------- Filtre şeridi ----------
-  readonly filtreTumu = FILTRE_TUMU;
-  filtrePlakaListesi = signal<string[]>([FILTRE_TUMU]);
-  filtrePlaka = FILTRE_TUMU;
+  // Plaka: dx-tag-box ile birden fazla plaka birden secilebiliyor (bos secim = "Tumu",
+  // Rapor sayfasindaki AYNI desen). Tarih: tek gun yerine dx-date-range-box ile araliktir.
+  filtrePlakaListesi = signal<string[]>([]);
+  filtreSeciliPlakalar = signal<string[]>([]);
+  filtreSeciliPlakalarDegisti(event: { value?: string[] | null }): void {
+    this.filtreSeciliPlakalar.set(event.value ?? []);
+  }
   filtreTarihAktif = false;
-  filtreTarihDate: Date = isoToTarih(bugunIso());
+  filtreBaslangicDate: Date = isoToTarih(bugunIso());
+  filtreBitisDate: Date = isoToTarih(bugunIso());
+
+  // dx-date-range-box'in (start/end)DateChange event'i string|number|Date donduruyor (Rapor
+  // sayfasindaki AYNI durum) - alan tipi Date oldugu icin dogrudan atanamiyor, donusum burada.
+  filtreBaslangicDateDegisti(deger: string | number | Date | null): void {
+    if (deger == null) {
+      return;
+    }
+    this.filtreBaslangicDate = new Date(deger);
+  }
+
+  filtreBitisDateDegisti(deger: string | number | Date | null): void {
+    if (deger == null) {
+      return;
+    }
+    this.filtreBitisDate = new Date(deger);
+  }
   filtreHiz: number | null = null;
   filtreKm: number | null = null;
   filtreHatasi = signal('');
@@ -338,14 +372,14 @@ export class Liste implements OnInit {
 
   private filtrePlakaListesiniDoldur(hareketler: AracHareketDto[]): void {
     const plakalar = [...new Set(hareketler.map((h) => h.aracPlaka))].sort();
-    this.filtrePlakaListesi.set([FILTRE_TUMU, ...plakalar]);
+    this.filtrePlakaListesi.set(plakalar);
   }
 
   // Herhangi bir filtre kriteri varsayilan (bos) degilse true - hem "Filtrele" hem "Yenile"
   // bu soruyu ayni sekilde cevaplamali, o yuzden mantik burada TEK yerde toplandi.
   private filtreAktifMi(): boolean {
     return (
-      this.filtrePlaka !== FILTRE_TUMU ||
+      this.filtreSeciliPlakalar().length > 0 ||
       this.filtreTarihAktif ||
       this.filtreHiz != null ||
       this.filtreKm != null
@@ -358,13 +392,15 @@ export class Liste implements OnInit {
   private filtreleUygulaKriterleri(kaynak: AracHareketDto[]): AracHareketDto[] {
     let sonuc = kaynak;
 
-    if (this.filtrePlaka !== FILTRE_TUMU) {
-      sonuc = sonuc.filter((h) => h.aracPlaka === this.filtrePlaka);
+    if (this.filtreSeciliPlakalar().length > 0) {
+      const secili = this.filtreSeciliPlakalar();
+      sonuc = sonuc.filter((h) => secili.includes(h.aracPlaka));
     }
 
     if (this.filtreTarihAktif) {
-      const filtreTarihIso = tarihToIso(this.filtreTarihDate);
-      sonuc = sonuc.filter((h) => h.veriTarihi === filtreTarihIso);
+      const baslangicIso = tarihToIso(this.filtreBaslangicDate);
+      const bitisIso = tarihToIso(this.filtreBitisDate);
+      sonuc = sonuc.filter((h) => h.veriTarihi >= baslangicIso && h.veriTarihi <= bitisIso);
     }
 
     if (this.filtreHiz != null) {
@@ -386,9 +422,10 @@ export class Liste implements OnInit {
   }
 
   filtreleTemizle(): void {
-    this.filtrePlaka = FILTRE_TUMU;
+    this.filtreSeciliPlakalar.set([]);
     this.filtreTarihAktif = false;
-    this.filtreTarihDate = isoToTarih(bugunIso());
+    this.filtreBaslangicDate = isoToTarih(bugunIso());
+    this.filtreBitisDate = isoToTarih(bugunIso());
     this.filtreHiz = null;
     this.filtreKm = null;
     this.filtreHatasi.set('');
