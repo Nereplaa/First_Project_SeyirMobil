@@ -360,6 +360,54 @@ kontrol de bu sırada devrede.
 
 ---
 
+## 2026-08-07 10:23 — Excel İçe Aktarma Ekranında Kullanıcı Deneyimi İnce Ayarları
+
+Bir önceki gün tamamlanan Excel içe aktarma özelliği, gerçek kullanım sırasında bulunan birkaç
+pürüzle cilalandı: dosya önizlemesinin bazı durumlarda boş görünmesine yol açan bir hata giderildi,
+dosya seçme/şablon indirme butonlarının hizası düzeltildi ve iş kuralı netleştirildi — "atla"
+olarak işaretlenen bir satırın içeriği hatalı olsa bile artık içe aktarmanın tamamını
+engellemiyor, sadece o satır atlanıyor. Ayrıca ekrandaki sabit bilgi kutusu kaldırılıp geçersiz
+plaka hata mesajı, plaka kuralını tam olarak anlatacak şekilde zenginleştirildi.
+
+---
+
+## 2026-08-07 11:33 — 1000 Satırlık Gerçekçi Veriyle Stres Testi, Gerçek Bir Rapor Hatası Bulundu
+
+Sistem, 40 araca yayılan 1000 satırlık gerçekçi bir veri kümesiyle test edildi. Bu test sırasında
+özet rapor hesaplamasında gerçek bir hata ortaya çıktı: bir aracın seçilen tarih aralığında hiç
+kaydı yokken öncesinde/sonrasında kayıtları varsa, rapor negatif kilometre ve ters tarih sırasıyla
+yanlış bir sonuç üretiyordu. Kök neden bulunup düzeltildi ve hem hatalı hem normal senaryolarla
+doğrulandı. Aynı gün, ana ekrandaki filtreleme de genişletildi — artık tek bir araç ve tek bir gün
+yerine, aynı anda birden fazla araç ve bir tarih aralığı seçilerek filtreleme yapılabiliyor
+(rapor ekranındaki filtreleme mantığıyla tutarlı).
+
+---
+
+## 2026-08-07 17:34 — Kurum Geri Bildirimi Üzerine Web Arayüzünün Tasarım Dili Yenilendi
+
+Kurumdan gelen geri bildirim netti: sistemin işlevselliği ve tutarlılığı beğenilmişti, ama genel
+görünüm ilk bakışta "şablon"/yapay zeka ile üretilmiş bir arayüz hissi veriyordu. Bu geri bildirim
+üzerine web arayüzünün tamamı, aynı renk paletini koruyarak ama kompozisyonu ve bileşen dilini
+değiştirerek yeniden tasarlandı:
+
+- **Giriş ekranı** ortalanmış tek bir kart yerine, ekranın tamamını kullanan asimetrik bir
+  bölünmeye kavuştu — bir tarafta filonun farklı lokasyonlara dağılan araçlarını temsil eden bir
+  rota grafiği, diğer tarafta giriş formu.
+- **Tüm ekranlarda** (Araç Hareketleri, Araç Hareket Raporu, Excel İçe Aktar, Admin Paneli), her
+  bölümü saran yuvarlak köşeli/gölgeli "kart" görünümü kaldırıldı, yerine daha sade, düz bir bölüm
+  düzeni geldi.
+- **Ana liste ekranında** filtreleme alanları ve tüm işlem butonları (Filtrele, Temizle, Yenile,
+  Sil, Excel'den Veri Aktar) tek bir satırda toplandı — önceden iki ayrı bölümde, farklı
+  hizalarda duruyorlardı.
+- Buton ve giriş alanlarının görünümü, tablo sütun genişlikleri ve genel renk tonları gerçek
+  kullanım sırasında bulunan çok sayıda küçük pürüzle (metnin kenara çok yakın olması, bazı
+  sütunların içeriği kesmesi, başlıkla tablo arasındaki boşluk gibi) birlikte ince ayarlandı ve
+  gerçek bir tarayıcıda uçtan uca doğrulandı.
+
+Masaüstü uygulaması bu turun kapsamı dışında, native görünümünü koruyor.
+
+---
+
 ## 🔜 Sıradaki Adımlar
 
 - [x] Web istemcisinin eklenmesi (aynı backend API üzerinden)
@@ -374,4 +422,5 @@ kontrol de bu sırada devrede.
 - [x] Yönetici paneli + rol bazlı yönlendirme (web)
 - [x] Docker ile konteynerleştirme + kullanıcı hareket günlüğü (Graylog)
 - [x] Excel'den toplu veri içe aktarma (web + masaüstü)
+- [x] Web arayüzünün tasarım dilinin yenilenmesi (kurum geri bildirimi üzerine)
 - [ ] Üst menü/sekme yapısının DevExtreme'e taşınması (isteğe bağlı, henüz yapılmadı)
