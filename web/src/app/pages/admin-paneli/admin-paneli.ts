@@ -26,6 +26,7 @@ export class AdminPaneli implements OnInit {
       dataField: 'olusturmaTarihi',
       caption: 'Oluşturma Tarihi',
       width: 170,
+      cssClass: 'col-numeric',
       customizeText: (cellInfo: { value?: string }) => (cellInfo.value ? this.formatTarih(cellInfo.value) : ''),
     },
   ];

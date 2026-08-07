@@ -1,5 +1,5 @@
-<section class="card">
-  <h2>Yeni Kullanıcı Ekle</h2>
+<section class="panel panel-form">
+  <div class="panel-head"><span class="panel-eyebrow">Yeni Kullanıcı Ekle</span></div>
   <div class="field-row">
     <div class="field">
       <label for="yeniKullaniciAdi">Kullanıcı Adı</label>
@@ -42,21 +42,25 @@
   </div>
 </section>
 
-<section class="card">
-  <div class="field-row" style="justify-content: space-between; margin-bottom: 0.75rem">
-    <h2 style="margin: 0">Kullanıcılar</h2>
-    <dx-button
-      text="Sil"
-      type="danger"
-      [disabled]="!seciliKullanici() || kendisiSecilmiMi"
-      (onClick)="sil()"
-    ></dx-button>
+<section class="panel">
+  <div class="panel-head">
+    <span class="panel-eyebrow">Kullanıcılar</span>
+    <span class="panel-actions">
+      <dx-button
+        text="Sil"
+        type="danger"
+        [disabled]="!seciliKullanici() || kendisiSecilmiMi"
+        (onClick)="sil()"
+      ></dx-button>
+    </span>
   </div>
 
   <dx-data-grid
     [dataSource]="kullanicilar()"
     [columns]="dataGridColumns"
     [showBorders]="true"
+    [showColumnLines]="true"
+    [showRowLines]="true"
     [rowAlternationEnabled]="true"
     [selection]="{ mode: 'single' }"
     [searchPanel]="{ visible: true, placeholder: 'Ara...' }"
@@ -69,8 +73,8 @@
   }
 </section>
 
-<section class="card">
-  <h2>Log Ekranı</h2>
+<section class="panel">
+  <div class="panel-head"><span class="panel-eyebrow">Log Ekranı</span></div>
   <p class="status-text">
     Backend API çağrıları ve web arayüzündeki tüm etkileşimler (tıklamalar, filtre değişiklikleri)
     Graylog'a kaydediliyor. Ayrıntılı log arama/filtreleme için Graylog'un kendi web arayüzü açılır
@@ -78,6 +82,6 @@
     hazır ve güçlü bir arayüz kullanılıyor).
   </p>
   <a href="http://localhost:9000" target="_blank" rel="noopener">
-    <dx-button text="Graylog'u Aç ↗" type="normal"></dx-button>
+    <dx-button text="Graylog'u Aç ↗" type="normal" stylingMode="outlined"></dx-button>
   </a>
 </section>
