@@ -807,7 +807,7 @@ static async Task<List<ImportSatiriSonuc>> ImportSatirlariDogrulaAsync(List<Impo
 
         if (string.IsNullOrWhiteSpace(satir.AracPlaka) || !PlakaValidator.IsValid(satir.AracPlaka))
         {
-            hatalar.Add("Geçersiz plaka formatı. Beklenen: il kodu (01-81) + harf + rakam, örn. \"34 AB 141\" (boşluksuz veya küçük harfli yazılabilir, biz düzeltiriz).");
+            hatalar.Add("Geçersiz plaka formatı. İl kodu 01-81 arasında olmalı. Ardından en fazla 3 harf gelir (Q, W, X harfleri kullanılmaz), şu kalıplardan biriyle devam eder: \"99 X 9999\", \"99 X 99999\", \"99 XX 999\", \"99 XX 9999\", \"99 XXX 99\" veya \"99 XXX 999\". Örnek: \"34 AB 141\".");
         }
 
         DateOnly? tarih = DateOnly.TryParse(satir.VeriTarihi, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedTarih)
@@ -929,13 +929,19 @@ static async Task<List<AracRaporSonucu>> HesaplaOzetRaporAsync(List<string> plak
 
     foreach (var plaka in plakalar)
     {
+        // Ikisi de AYNI [baslangic, bitis] araligiyla sinirli olmali - onceden baslangicKayit
+        // sadece ">= baslangic" (ustsinir YOKTU) ve bitisKayit sadece "<= bitis" (altsinir YOKTU)
+        // ile ariyordu. Aracin bu aralikta HIC okumasi olmayip once/sonrasinda okumalari varsa,
+        // ikisi ayri ayri araligin DISINDAN birer kayit buluyor, buldugu iki kaydin tarihleri
+        // TERS siraya (baslangic > bitis) dusup "Yapilan Km" NEGATIF cikiyordu (1000 satirlik
+        // test verisiyle bulunan gercek bug, 2026-08-07).
         var baslangicKayit = await db.AracHareketleri
-            .Where(h => h.AracPlaka == plaka && h.VeriTarihi >= baslangic)
+            .Where(h => h.AracPlaka == plaka && h.VeriTarihi >= baslangic && h.VeriTarihi <= bitis)
             .OrderBy(h => h.VeriTarihi)
             .FirstOrDefaultAsync();
 
         var bitisKayit = await db.AracHareketleri
-            .Where(h => h.AracPlaka == plaka && h.VeriTarihi <= bitis)
+            .Where(h => h.AracPlaka == plaka && h.VeriTarihi >= baslangic && h.VeriTarihi <= bitis)
             .OrderByDescending(h => h.VeriTarihi)
             .FirstOrDefaultAsync();
 
