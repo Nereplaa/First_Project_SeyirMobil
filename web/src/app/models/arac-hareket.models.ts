@@ -87,9 +87,11 @@ export interface ImportOnizlemeYanitiDto {
 export interface ImportOnaylaSatiriDto {
   satirNo: number;
   aracPlaka: string;
-  veriTarihi: string;
-  hiz: number;
-  kmSayaci: number;
+  // "Atla" secilen bir satir hic veritabanina yazilmiyor (backend bunu hata kontrolunden
+  // once eleyip atliyor) - o yuzden gecersiz/eksik (null) veri icerebilir.
+  veriTarihi: string | null;
+  hiz: number | null;
+  kmSayaci: number | null;
   cakismaAksiyonu: string;
 }
 

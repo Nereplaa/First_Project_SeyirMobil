@@ -27,12 +27,16 @@ public record ImportOnizlemeYaniti(List<ImportSatiriSonuc> Satirlar, string? Dos
 
 public record ImportYenidenDogrulaRequest(List<ImportHamSatir> Satirlar);
 
+// VeriTarihi/Hiz/KmSayaci NULLABLE - CakismaAksiyonu "Atla" ise bu satir zaten hic
+// veritabanina yazilmiyor (bkz. Program.cs import-onayla), o yuzden gecersiz/eksik veri
+// icerebilir; non-nullable olsalar JSON'da null gelince TUM istek deserialize edilemezdi
+// (kullanici geri bildirimi: hatali+atlanan bir satir yuzunden butun ice aktarma patliyordu).
 public record ImportOnaylaSatiri(
     int SatirNo,
     string AracPlaka,
-    string VeriTarihi,
-    int Hiz,
-    decimal KmSayaci,
+    string? VeriTarihi,
+    int? Hiz,
+    decimal? KmSayaci,
     string CakismaAksiyonu); // "UzerineYaz" | "Atla" | "" (cakisma yoksa onemsiz)
 
 public record ImportOnaylaRequest(List<ImportOnaylaSatiri> Satirlar);

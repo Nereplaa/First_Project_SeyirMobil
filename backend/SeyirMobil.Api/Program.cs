@@ -410,7 +410,7 @@ app.MapPost("/api/arac-hareketleri/import-yeniden-dogrula", async (ImportYeniden
 app.MapPost("/api/arac-hareketleri/import-onayla", async (ImportOnaylaRequest request, SeyirMobilDbContext db) =>
 {
     var hamSatirlar = request.Satirlar
-        .Select(s => new ImportHamSatir(s.SatirNo, s.AracPlaka, s.VeriTarihi, s.Hiz, s.KmSayaci))
+        .Select(s => new ImportHamSatir(s.SatirNo, s.AracPlaka, s.VeriTarihi ?? "", s.Hiz, s.KmSayaci))
         .ToList();
     var dogrulama = (await ImportSatirlariDogrulaAsync(hamSatirlar, db)).ToDictionary(d => d.SatirNo);
 
@@ -422,6 +422,19 @@ app.MapPost("/api/arac-hareketleri/import-onayla", async (ImportOnaylaRequest re
     foreach (var satir in request.Satirlar)
     {
         var dogru = dogrulama[satir.SatirNo];
+
+        // Kullanici bu satiri zaten ATLAYACAGINI soyledeyse ("Atla"), satirin hatali olup
+        // olmamasi ya da gercekten bir cakismasi olup olmamasi ONEMSIZ - hicbir sekilde
+        // veritabanina yazilmayacak. Bu yuzden hata kontrolunden ONCE calisir (kullanici
+        // karari, 2026-08-07): boylece ayni dosyada bozuk BIR satiri "atla" diyerek gecip
+        // digerlerini iceri alabiliyor, tek bir hatali satir yuzunden butun ice aktarma
+        // reddedilmiyor.
+        if (satir.CakismaAksiyonu == "Atla")
+        {
+            atlanan++;
+            continue;
+        }
+
         if (dogru.Hatalar.Count > 0)
         {
             hatali.Add($"Satır {satir.SatirNo}: {string.Join(" ", dogru.Hatalar)}");
@@ -432,11 +445,6 @@ app.MapPost("/api/arac-hareketleri/import-onayla", async (ImportOnaylaRequest re
 
         if (dogru.CakismaVarMi)
         {
-            if (satir.CakismaAksiyonu == "Atla")
-            {
-                atlanan++;
-                continue;
-            }
             if (satir.CakismaAksiyonu != "UzerineYaz")
             {
                 hatali.Add($"Satır {satir.SatirNo}: Çakışma için \"üzerine yaz\" veya \"atla\" seçilmedi.");
@@ -444,8 +452,10 @@ app.MapPost("/api/arac-hareketleri/import-onayla", async (ImportOnaylaRequest re
             }
             var mevcutKayit = await db.AracHareketleri
                 .FirstAsync(h => h.AracId == dogru.AracId && h.VeriTarihi == tarih);
-            mevcutKayit.Hiz = satir.Hiz;
-            mevcutKayit.KmSayaci = satir.KmSayaci;
+            // dogru.Hatalar.Count == 0 zaten dogrulandi (satir 439) - Hiz/KmSayaci'nin dolu
+            // oldugu garanti, ".Value" burada guvenli.
+            mevcutKayit.Hiz = satir.Hiz!.Value;
+            mevcutKayit.KmSayaci = satir.KmSayaci!.Value;
             guncellenen++;
         }
         else
@@ -455,8 +465,8 @@ app.MapPost("/api/arac-hareketleri/import-onayla", async (ImportOnaylaRequest re
                 AracId = dogru.AracId!.Value,
                 AracPlaka = dogru.KanonikAracPlaka,
                 VeriTarihi = tarih,
-                Hiz = satir.Hiz,
-                KmSayaci = satir.KmSayaci
+                Hiz = satir.Hiz!.Value,
+                KmSayaci = satir.KmSayaci!.Value
             });
             eklenen++;
         }
@@ -797,7 +807,7 @@ static async Task<List<ImportSatiriSonuc>> ImportSatirlariDogrulaAsync(List<Impo
 
         if (string.IsNullOrWhiteSpace(satir.AracPlaka) || !PlakaValidator.IsValid(satir.AracPlaka))
         {
-            hatalar.Add("Geçersiz plaka formatı.");
+            hatalar.Add("Geçersiz plaka formatı. Beklenen: il kodu (01-81) + harf + rakam, örn. \"34 AB 141\" (boşluksuz veya küçük harfli yazılabilir, biz düzeltiriz).");
         }
 
         DateOnly? tarih = DateOnly.TryParse(satir.VeriTarihi, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedTarih)
@@ -830,14 +840,14 @@ static async Task<List<ImportSatiriSonuc>> ImportSatirlariDogrulaAsync(List<Impo
         {
             aracId = atanmisId;
             yeni = true;
-            kanonikPlaka = normPlaka;
+            kanonikPlaka = PlakaValidator.Format(normPlaka);
         }
         else
         {
             aracId = sonrakiYeniAracId++;
             yeniPlakaAtamalari[normPlaka] = aracId;
             yeni = true;
-            kanonikPlaka = normPlaka;
+            kanonikPlaka = PlakaValidator.Format(normPlaka);
         }
 
         cozumlenmis.Add((satir, normPlaka, aracId, yeni, kanonikPlaka, tarih, hatalar));

@@ -170,6 +170,13 @@ public class AracHareketImportForm : Form
 
     private bool HataliMi(ImportSatiriSonucDto s)
     {
+        // "Atla" secilen bir satir zaten veritabanina hic yazilmayacak - hatali olsun ya da
+        // olmasin onemsiz, digerlerinin ice aktarilmasini ENGELLEMEMELI (kullanici karari,
+        // 2026-08-07; backend'deki import-onayla de AYNI onceligi uyguluyor).
+        if (_cakismaAksiyonlari.GetValueOrDefault(s.SatirNo) == "Atla")
+        {
+            return false;
+        }
         if (s.Hatalar.Count > 0)
         {
             return true;
@@ -199,7 +206,11 @@ public class AracHareketImportForm : Form
                 DurumMetni(s, aksiyon), aksiyonMetin, string.Join(" ", s.Hatalar));
 
             _grid.Rows[rowIndex].Cells["CakismaAksiyonu"].ReadOnly = !s.CakismaVarMi;
-            if (s.Hatalar.Count > 0)
+            if (aksiyon == "Atla")
+            {
+                _grid.Rows[rowIndex].DefaultCellStyle.BackColor = Color.Honeydew;
+            }
+            else if (s.Hatalar.Count > 0)
             {
                 _grid.Rows[rowIndex].DefaultCellStyle.BackColor = Color.MistyRose;
             }
@@ -217,6 +228,10 @@ public class AracHareketImportForm : Form
 
     private static string DurumMetni(ImportSatiriSonucDto s, string aksiyon)
     {
+        if (aksiyon == "Atla")
+        {
+            return "Atlanacak";
+        }
         if (s.Hatalar.Count > 0)
         {
             return "Hata";
@@ -227,7 +242,7 @@ public class AracHareketImportForm : Form
         }
         if (s.CakismaVarMi)
         {
-            return aksiyon == "UzerineYaz" ? "Üzerine yazılacak" : "Atlanacak";
+            return "Üzerine yazılacak";
         }
         return s.YeniAracMi ? "Yeni araç" : "Hazır";
     }

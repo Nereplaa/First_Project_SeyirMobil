@@ -1,9 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import {
-  DxFileUploaderModule,
-  DxDataGridModule,
-  DxButtonModule,
-} from 'devextreme-angular';
+import { DxDataGridModule, DxButtonModule } from 'devextreme-angular';
 import { AracHareketApi } from '../../services/arac-hareket-api';
 import { Bildirim } from '../../services/bildirim';
 import { ImportDosyaKoprusu } from '../../services/import-dosya-koprusu';
@@ -22,7 +18,7 @@ const CAKISMA_AKSIYON_SECENEKLERI = [
 
 @Component({
   selector: 'app-import',
-  imports: [DxFileUploaderModule, DxDataGridModule, DxButtonModule],
+  imports: [DxDataGridModule, DxButtonModule],
   templateUrl: './import.html',
   styleUrl: './import.css',
 })
@@ -42,8 +38,19 @@ export class Import implements OnInit {
     {
       dataField: 'veriTarihi',
       caption: 'Tarih',
-      width: 110,
-      customizeText: (c: { value?: string }) => (c.value ? this.formatTarih(c.value) : 'Geçersiz'),
+      width: 130,
+      dataType: 'date' as const,
+      format: 'dd.MM.yyyy',
+      // Elle yazim yerine takvimden secim zorunlu kilinir - kullanicilar tarihi farkli
+      // siralarda (gun/ay/yil) ya da farkli ayraclarla (./ -) yazabiliyordu, bu da import'a
+      // gecersiz/yanlis-yorumlanan tarihler olarak dusuyordu (gercek kullanici geri bildirimi).
+      editorOptions: { calendarOptions: { showTodayButton: true } },
+      // dataType 'date' oldugu icin DevExtreme buraya artik ISO STRING degil bir Date nesnesi
+      // (ya da gecersiz/bos deger icin null/undefined) veriyor - eskiden burada satirin ham
+      // string'i (formatTarih'in bekledigi) geliyordu, tip uyusmazligi TUM grid'in coken bir
+      // exception'a (`iso.split is not a function`) yol acip hicbir satirin gorunmemesine
+      // sebep oluyordu (gercek kullanici raporuyla bulundu).
+      customizeText: (c: { value?: Date | null }) => (c.value ? this.formatTarihDate(c.value) : 'Geçersiz'),
     },
     { dataField: 'hiz', caption: 'Hız', width: 80, dataType: 'number' as const },
     { dataField: 'kmSayaci', caption: 'Km Sayacı', width: 120, dataType: 'number' as const, format: '#,##0.00' },
@@ -71,6 +78,7 @@ export class Import implements OnInit {
   hepsiGecerliMi = computed(
     () => this.satirlar().length > 0 && this.satirlar().every((s) => this.satirGecerliMi(s))
   );
+  cakismaSatiriVarMi = computed(() => this.satirlar().some((s) => s.cakismaVarMi));
 
   ngOnInit(): void {
     // Liste sayfasindaki "Excel'den Veri Aktar" kisayolundan gelindiyse, dosya zaten
@@ -82,7 +90,14 @@ export class Import implements OnInit {
     }
   }
 
+  // "Atla" secilen bir satir zaten veritabanina hic yazilmayacak - hatali olsun ya da olmasin
+  // onemsiz, digerlerinin ice aktarilmasini ENGELLEMEMELI (kullanici karari, 2026-08-07: tek
+  // bozuk satir yuzunden butun dosyayi reddetmek yerine o satiri "atla" diyerek gecebilmeli).
+  // Backend'deki `import-onayla` de AYNI onceligi uyguluyor (Atla kontrolu hata kontrolunden once).
   private satirGecerliMi(s: GridSatiri): boolean {
+    if (s.cakismaAksiyonu === 'Atla') {
+      return true;
+    }
     if (s.hatalar.length > 0) {
       return false;
     }
@@ -93,6 +108,9 @@ export class Import implements OnInit {
   }
 
   durumMetni(s: GridSatiri): string {
+    if (s.cakismaAksiyonu === 'Atla') {
+      return 'Atlanacak';
+    }
     if (s.hatalar.length > 0) {
       return 'Hata';
     }
@@ -100,7 +118,7 @@ export class Import implements OnInit {
       return 'Çakışma — karar bekliyor';
     }
     if (s.cakismaVarMi) {
-      return s.cakismaAksiyonu === 'UzerineYaz' ? 'Üzerine yazılacak' : 'Atlanacak';
+      return 'Üzerine yazılacak';
     }
     if (s.yeniAracMi) {
       return 'Yeni araç';
@@ -109,13 +127,16 @@ export class Import implements OnInit {
   }
 
   // Grid satırlarını duruma göre renklendirir - kırmızımsı: hata, sarımsı: çakışma karar
-  // bekliyor, yeşilimsi: içe aktarılmaya hazır. Önceden bu ayrım SADECE metinle (Durum
-  // sütunu) yapılıyordu, göz taraması için yetersizdi (gerçek kullanıcı geri bildirimi).
+  // bekliyor, yeşilimsi: içe aktarılmaya hazır (Atla dahil - o satır zaten yazılmayacak).
+  // Önceden bu ayrım SADECE metinle (Durum sütunu) yapılıyordu, göz taraması için yetersizdi
+  // (gerçek kullanıcı geri bildirimi).
   onRowPrepared(e: { rowType: string; data?: GridSatiri; rowElement: HTMLElement }): void {
     if (e.rowType !== 'data' || !e.data) {
       return;
     }
-    if (e.data.hatalar.length > 0) {
+    if (e.data.cakismaAksiyonu === 'Atla') {
+      e.rowElement.style.backgroundColor = '#f0fdf4';
+    } else if (e.data.hatalar.length > 0) {
       e.rowElement.style.backgroundColor = '#fef2f2';
     } else if (e.data.cakismaVarMi && !e.data.cakismaAksiyonu) {
       e.rowElement.style.backgroundColor = '#fefce8';
@@ -124,8 +145,15 @@ export class Import implements OnInit {
     }
   }
 
-  dosyaSecildi(event: { value?: File[] }): void {
-    const dosya = event.value?.[0];
+  // Dosya secimi icin DevExtreme'in dx-file-uploader'i YERINE gizli bir native <input type=file>
+  // + dx-button kullaniyoruz (Liste sayfasindaki "Excel'den Veri Aktar" kisayoluyla AYNI desen) -
+  // dx-file-uploader varsayilan olarak buton yaninda genis, sürükle-bırak alanlı bir kutu
+  // ciziyor, bu da yanindaki "Şablon İndir" butonuyla hizasiz gorunmesine sebep oluyordu
+  // (gerçek kullanıcı geri bildirimi).
+  dosyaSecildi(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const dosya = input.files?.[0];
+    input.value = '';
     if (!dosya) {
       return;
     }
@@ -153,6 +181,14 @@ export class Import implements OnInit {
         this.bildirim.hata(`Dosya okunamadı.\n\nHata: ${err.message}`);
       },
     });
+  }
+
+  // Cakisan satir sayisi onlarca olabiliyor - hepsini tek tek secmek yerine tek tusla hepsine
+  // ayni aksiyonu atamak icin (kullanici istegi). Sadece GERCEKTEN cakisan satirlari etkiler.
+  tumCakismalariAyarla(aksiyon: 'UzerineYaz' | 'Atla'): void {
+    this.satirlar.update((arr) =>
+      arr.map((s) => (s.cakismaVarMi ? { ...s, cakismaAksiyonu: aksiyon } : s))
+    );
   }
 
   sablonIndir(): void {
@@ -214,12 +250,14 @@ export class Import implements OnInit {
       return;
     }
 
+    // "Atla" secilen bir satir hatali/eksik veri icerebilir (zaten yazilmayacak) - o yuzden
+    // burada artik "!" ile zorlamiyoruz, oldugu gibi (null olabilir) gonderiyoruz.
     const gonderilecek: ImportOnaylaSatiriDto[] = this.satirlar().map((s) => ({
       satirNo: s.satirNo,
       aracPlaka: s.aracPlaka,
-      veriTarihi: s.veriTarihi!,
-      hiz: s.hiz!,
-      kmSayaci: s.kmSayaci!,
+      veriTarihi: s.veriTarihi,
+      hiz: s.hiz,
+      kmSayaci: s.kmSayaci,
       cakismaAksiyonu: s.cakismaAksiyonu,
     }));
 
@@ -242,8 +280,9 @@ export class Import implements OnInit {
     });
   }
 
-  formatTarih(iso: string): string {
-    const [y, m, d] = iso.split('-');
-    return `${d}.${m}.${y}`;
+  formatTarihDate(d: Date): string {
+    const gun = String(d.getDate()).padStart(2, '0');
+    const ay = String(d.getMonth() + 1).padStart(2, '0');
+    return `${gun}.${ay}.${d.getFullYear()}`;
   }
 }
