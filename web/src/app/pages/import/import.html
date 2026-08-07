@@ -1,18 +1,10 @@
-<section class="card">
-  <h2>Excel'den Toplu Veri Girişi</h2>
+<section class="panel">
+  <div class="panel-head"><span class="panel-eyebrow">Excel'den Toplu Veri Girişi</span></div>
   <p class="status-text">
     Sütunlar sırasıyla: <strong>AracPlaka, VeriTarihi, Hiz, KmSayaci</strong> (ilk satır başlık,
     tam bu isimlerle). Plaka sistemde yoksa otomatik yeni araç olarak eklenir. Emin değilseniz
     önce şablonu indirip onun üzerinden doldurun.
   </p>
-
-  <div class="format-bilgi-kutusu">
-    <strong>Plaka formatı:</strong> il kodu (01-81) + harf + rakam, örn. <code>34 AB 141</code>.
-    Boşluksuz (<code>34ab141</code>) veya küçük harfli yazabilirsiniz, sistem otomatik
-    <code>34 AB 141</code> biçimine çevirir. <br />
-    <strong>Tarih:</strong> alttaki önizleme tablosunda bir hücreye tıklayınca takvimden
-    seçilir, elle yazım formatla ilgili karışıklığı önlemek için kapatıldı.
-  </div>
 
   <div class="import-actions-row">
     <input #dosyaSecici type="file" accept=".xlsx" hidden (change)="dosyaSecildi($event)" />
@@ -38,13 +30,14 @@
 </section>
 
 @if (satirlar().length > 0) {
-  <section class="card">
-    <div class="field-row" style="justify-content: space-between; margin-bottom: 0.75rem">
-      <h2 style="margin: 0">Önizleme ({{ toplamSatir() }} satır)</h2>
-      <div style="display: flex; gap: 0.5rem">
+  <section class="panel">
+    <div class="panel-head">
+      <span class="panel-eyebrow">Önizleme ({{ toplamSatir() }} satır)</span>
+      <span class="panel-actions">
         <dx-button
           [text]="yukleniyor() ? 'Doğrulanıyor…' : 'Yeniden Doğrula'"
           type="normal"
+          stylingMode="outlined"
           [disabled]="yukleniyor() || onaylaniyor()"
           (onClick)="yenidenDogrula()"
         ></dx-button>
@@ -54,7 +47,7 @@
           [disabled]="!hepsiGecerliMi() || yukleniyor() || onaylaniyor()"
           (onClick)="iceAktar()"
         ></dx-button>
-      </div>
+      </span>
     </div>
 
     @if (cakismaSatiriVarMi()) {
@@ -79,12 +72,16 @@
       [dataSource]="satirlar()"
       [columns]="columns"
       [showBorders]="true"
+      [showColumnLines]="true"
+      [showRowLines]="true"
       [wordWrapEnabled]="true"
       [columnAutoWidth]="true"
       [editing]="{ mode: 'cell', allowUpdating: true }"
       dateSerializationFormat="yyyy-MM-dd"
       (onSaved)="gridKaydedildi()"
       (onRowPrepared)="onRowPrepared($event)"
+      (onEditorPreparing)="onEditorPreparing($event)"
+      (onCellValueChanged)="onCellValueChanged()"
     ></dx-data-grid>
 
     @if (!hepsiGecerliMi()) {

@@ -6,34 +6,37 @@
   margin-top: 0.75rem;
 }
 
-.format-bilgi-kutusu {
-  margin-top: 0.75rem;
-  padding: 0.65rem 0.85rem;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 6px;
-  color: #0c4a6e;
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-
-.format-bilgi-kutusu code {
-  background: #e0f2fe;
-  border-radius: 3px;
-  padding: 0.05rem 0.3rem;
-  font-size: 0.85em;
-}
-
 .dosya-hatasi-banner {
   margin-top: 1rem;
   padding: 0.85rem 1rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background-color: var(--danger-100);
+  border: 1px solid var(--danger-600);
   border-radius: 6px;
-  color: #991b1b;
+  color: var(--danger-600);
 }
 
 .dosya-hatasi-banner p {
   margin: 0.35rem 0 0;
   font-size: 0.9rem;
+}
+
+/* Çakışma Aksiyonu sütunu, seçim yapılmamışken boş görünüyordu - kullanıcı bunun tıklanıp bir
+   şey seçilmesi gereken bir hücre olduğunu anlayamıyordu (2026-08-07 geri bildirimi). Gerçek bir
+   çakışma varsa (karar ZORUNLU) dikkat çeken, tıklanabilir görünümlü kesikli bir "Seçiniz" etiketi;
+   çakışma yoksa (seçim opsiyonel) sadece soluk bir "—" - aciliyet farkı görsel olarak da ayrışıyor. */
+.aksiyon-placeholder {
+  color: var(--ink-500);
+  font-size: 0.85rem;
+}
+
+.aksiyon-placeholder-required {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border: 1px dashed var(--route-600);
+  border-radius: 999px;
+  color: var(--route-600);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
 }
