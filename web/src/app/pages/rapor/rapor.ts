@@ -63,42 +63,66 @@ export class Rapor implements OnInit {
 
   // ---------- DevExtreme DataGrid kolonlari (ozet + detayli rapor) ----------
   readonly ozetColumns = [
-    { dataField: 'aracPlaka', caption: 'Araç Plakası' },
+    {
+      dataField: 'aracPlaka',
+      caption: 'Araç Plakası',
+      cellTemplate: (cellElement: HTMLElement, cellInfo: { value?: string }) => {
+        const span = document.createElement('span');
+        span.className = 'plaka-chip';
+        span.textContent = cellInfo.value ?? '';
+        cellElement.appendChild(span);
+      },
+    },
     {
       dataField: 'baslangicKm',
       caption: 'Başlangıç Km',
+      cssClass: 'col-numeric',
       customizeText: (cellInfo: { value?: number | null }) =>
         cellInfo.value == null ? 'Veri yok' : this.formatKm(cellInfo.value),
     },
     {
       dataField: 'bitisKm',
       caption: 'Bitiş Km',
+      cssClass: 'col-numeric',
       customizeText: (cellInfo: { value?: number | null }) =>
         cellInfo.value == null ? 'Veri yok' : this.formatKm(cellInfo.value),
     },
     {
       dataField: 'yapilanKm',
       caption: 'Yapılan Km',
+      cssClass: 'col-numeric',
       customizeText: (cellInfo: { value?: number | null }) =>
         cellInfo.value == null ? 'Veri yok' : this.formatKm(cellInfo.value),
     },
   ];
 
   readonly detayColumns = [
-    { dataField: 'aracPlaka', caption: 'Araç Plaka' },
+    {
+      dataField: 'aracPlaka',
+      caption: 'Araç Plaka',
+      cellTemplate: (cellElement: HTMLElement, cellInfo: { value?: string }) => {
+        const span = document.createElement('span');
+        span.className = 'plaka-chip';
+        span.textContent = cellInfo.value ?? '';
+        cellElement.appendChild(span);
+      },
+    },
     {
       dataField: 'veriTarihi',
       caption: 'Veri Tarihi',
+      cssClass: 'col-numeric',
       customizeText: (cellInfo: { value?: string }) => (cellInfo.value ? this.formatTarih(cellInfo.value) : ''),
     },
     {
       dataField: 'kmSayaci',
       caption: 'Km Sayacı',
+      cssClass: 'col-numeric',
       customizeText: (cellInfo: { value?: number }) => (cellInfo.value == null ? '' : this.formatKm(cellInfo.value)),
     },
     {
       dataField: 'artis',
       caption: 'Bir Önceki Okumaya Göre Artış',
+      cssClass: 'col-numeric',
       customizeText: (cellInfo: { value?: number | null }) =>
         cellInfo.value == null ? '-' : this.formatKm(cellInfo.value),
     },

@@ -1,5 +1,5 @@
-<section class="card">
-  <h2>Araç Hareket Raporu</h2>
+<section class="panel panel-form">
+  <div class="panel-head"><span class="panel-eyebrow">Araç Hareket Raporu</span></div>
 
   <div class="field-row">
     <div class="field">
@@ -59,11 +59,14 @@
 </section>
 
 @if (raporUretildi() && !detayliRapor) {
-  <section class="card">
+  <section class="panel">
+    <div class="panel-head"><span class="panel-eyebrow">Sonuç — Özet</span></div>
     <dx-data-grid
       [dataSource]="ozetSonuclar()"
       [columns]="ozetColumns"
       [showBorders]="true"
+      [showColumnLines]="true"
+      [showRowLines]="true"
       [rowAlternationEnabled]="true"
       [searchPanel]="{ visible: true, placeholder: 'Ara...' }"
       [export]="{ enabled: true }"
@@ -73,11 +76,14 @@
 }
 
 @if (raporUretildi() && detayliRapor) {
-  <section class="card">
+  <section class="panel">
+    <div class="panel-head"><span class="panel-eyebrow">Sonuç — Detaylı</span></div>
     <dx-data-grid
       [dataSource]="detaySonuclar()"
       [columns]="detayColumns"
       [showBorders]="true"
+      [showColumnLines]="true"
+      [showRowLines]="true"
       [rowAlternationEnabled]="true"
       [paging]="{ pageSize: 25 }"
       [pager]="{ visible: true, showPageSizeSelector: true, allowedPageSizes: [10, 25, 50, 100], showInfo: true }"
